@@ -1,0 +1,24 @@
+
+/* 0.4: keep gameplay quiet. Accessible control names remain, solutions do not. */
+:root{--mint:#b4dbc9;--soft:#9cabb3;--line:#bed2dd1b}
+.hero-copy .eyebrow{letter-spacing:.24em;color:#b3c8c5}
+h1{font-weight:600;letter-spacing:-.045em;text-shadow:none}h1 em{font-weight:400;letter-spacing:.13em;font-size:.75em}
+.hero-description{color:#bccbcf;font-size:13px}.hero-copy .primary{gap:32px}
+.primary,.secondary{border-radius:6px;box-shadow:none}.primary{background:#c6ded1}
+.panel{background:linear-gradient(130deg,#172633ee,#0c1722f5);border-color:#bfd0d51e;border-radius:16px;box-shadow:0 22px 90px #0005}
+.modal-backdrop{background:#050b156b;backdrop-filter:blur(6px)}
+.level{border-color:#bed2dd14;background:#09121b44;border-radius:9px}.level.current{border-color:#b4dbc955}.level b{font-weight:300}
+.menu-footer .rule{color:#b3c8c5}.footer-nav .nav-item{border-color:#bad0d122}
+body.quiet-play .run-progress,body.quiet-play .stage-info span,body.quiet-play .sun-control label,body.quiet-play .sun-labels,body.quiet-play .jump-button b,body.quiet-play .jump-button small,body.quiet-play #attempt-label,body.quiet-play #context-hint{display:none!important}
+body.quiet-play .stage-info{min-width:0;flex:1}body.quiet-play .stage-info b{margin:0;color:#d3dedc;letter-spacing:.14em;font-size:10px}
+body.quiet-play .hud-top{gap:13px}.shard-count{font-size:15px;color:#d9c9a4;letter-spacing:6px}
+body.quiet-play .sun-control{width:156px}body.quiet-play .sun-track{padding:12px 17px;border-color:#d7caa52c;background:#0b16235e;border-radius:25px}
+body.quiet-play .jump-button{width:68px;height:68px;background:#132d395c;border-color:#c1dfd33d;box-shadow:none}
+body.quiet-play .jump-button span{font-size:26px;color:#c4dcd3}
+body.quiet-play .jump-button.held{background:#305d5b8c}
+body.quiet-play .icon-button{background:#08142155;border-color:#c0d9ee1b;width:38px;height:38px}
+body.quiet-play .touch-controls{bottom:max(24px,env(safe-area-inset-bottom))}
+body.playing .vignette{background:linear-gradient(0deg,#050b1850,transparent 18%)}
+body.quiet-play .result-metrics{border-color:#bfd0d51a}
+@media(orientation:portrait){body.quiet-play .hud-top{flex-wrap:nowrap}body.quiet-play .touch-controls{bottom:max(32px,env(safe-area-inset-bottom))}.hero-description{font-size:12px}}
+@media(max-height:530px) and (orientation:landscape){body.quiet-play .touch-controls{bottom:16px}body.quiet-play .jump-button{width:60px;height:60px}.hero-description{font-size:11px}.hero-copy{top:22%}}

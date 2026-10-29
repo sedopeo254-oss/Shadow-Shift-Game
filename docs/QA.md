@@ -1,37 +1,37 @@
-# Alpha 0.3.0 verification — 2026-10-29
+# Alpha 0.4.0 verification — 2026-10-29
 
-## Results
+## Executed results
 
-`npm run check`: **53 tests passed, 0 failed** on Node.js 22.16.0. `npm run build` succeeded; the runtime source fingerprint was `c6771f4ac14d`.
+- `npm run check`: 60 tests passed, zero failed (Node.js 22.16.0).
+- `npm run build`: succeeded; runtime fingerprint `d505926c2780`.
+- `python tools/playtest.py`: 40 browser assertions passed, zero page errors, Chromium 144.0.7559.96.
 
-The tests include 120 complete reference-controller runs (30 levels × four attempts), plus 36 complete shared-seed runs (three seeds × four later levels × three variants). Four attempts exercise three mutation families and a wraparound; they are not four unique trap families. The controller proves these sampled routes are traversable, not that all possible seeds are proven or that human difficulty is balanced.
+The existing 53 rules tests still include 120 reference-controller campaign runs (30 stages × four attempts) and 36 selected shared-seed runs. They cover only sampled routes, not every possible seed or human difficulty. Seven new tests cover tutorial-only policy, unique scene descriptions, stable stage identity across retries, non-wrapping world cells, absence of mutation copy, old-save compatibility, and build/cache inclusion.
 
-Other checks cover full UFO resets, correct shadow shielding, shadow-gap support, frozen ready/dead states, identical character physics, nonoverlapping obstacle envelopes, challenge codes, UTC daily selection, reward limits, invalid imports, backup recovery, storage denial, and exclusion of all in-level positions from save data.
+The browser suite exercises the level-1 tutorial, actual first-level completion with the reference controller, immediate level-2 entry, hint removal, absence of canvas labels, silent death/retry, actual trap mutation, UFO reset, return to the tutorial, all 30 rendered scene fingerprints, bounded scenery cache, portrait/landscape resizing, simultaneous two-contact touch input, settings, and storage-denial fallback. Screenshot sizes include 1440×900, 430×932, 932×430 and 360×640. Distinct image fingerprints demonstrate different renderings, not a subjective quality score.
 
-## Browser smoke test
+## Test environment limits
 
-Chromium 144.0.7559.96; 15 checks completed with no JavaScript page errors. Desktop viewport 1440×900; mobile emulation 430×932 and 932×430. Exercised menu boot, both characters, keyboard jump, pause, deliberate gap failure, full restart, visible trap mutation, UFO shield/capture/reset, touch jump, orientation resize, left-handed controls, reduced motion, and portable-build boot/play.
+Browser URL navigation is blocked by environment policy. The harness loads the exact generated portable HTML through Playwright `set_content`, injecting an inspection handle and a memory-backed storage adapter for UI flow tests only. A separate page verifies the original storage-denied path. Gallery captures use controlled positions and frozen simulation with physically supported bridge placement. None of these test-only adapters is in the distributed game.
 
-The original environment blocked browser URL navigation. The harness therefore loads the exact built portable HTML through Playwright `set_content`, adding an inspection handle in memory only. Controlled placement is used to reproduce collisions quickly. This does **not** test real-origin storage/reload, HTTPS hosting, service-worker installation, offline cache upgrades, phone hardware, battery, thermal performance, or a signed APK. The storage-denied fallback visible in screenshots is expected in this test context.
+HTTPS hosting, service-worker installation and upgrades, actual-origin persistence, physical Android multi-touch, thermal behavior, battery consumption and sustained frame rates were NOT verified. No APK was built. Do not turn browser emulation into device-performance claims.
 
-Run the optional browser suite after building:
+## Reproduce
 
 ```sh
-python -m pip install playwright
-python -m playwright install chromium
+npm run check
+npm run build
 python tools/playtest.py
 ```
 
-An existing Chromium can be selected with `CHROMIUM_EXECUTABLE`. These are optional developer-only dependencies, not game runtime dependencies. Output is written to ignored `playtest-output/`. The downloadable source package includes the screenshots and JSON report from the recorded run.
+Optional developer dependency: Python Playwright and a Chromium executable (or `CHROMIUM_EXECUTABLE`). The game itself still has no external runtime packages. Reports/screenshots go in ignored `playtest-output/`.
 
-## Known scope limits
+## Presentation acceptance criteria
 
-- The 30 routes are modular variations, not 30 fully handcrafted story encounters.
-- Stars currently measure completion and shard collection. Since auto-run fixes route duration, efficiency uses jumps/sun changes rather than pretending to offer meaningful speedrun times.
-- Daily challenges use the device's UTC date. No trusted server time, anti-cheat, cloud synchronization or online leaderboard is present.
-- Adaptation is a local rule system; it is not a trained AI.
-- Echoes are visual replays; low gravity is implemented, full gravity inversion is not.
-- Mobile installation, simultaneous two-finger controls on physical hardware, and long-session performance remain release gates.
-- Browser saves depend on the browser's origin/storage policy. Export a backup before moving origins or clearing data.
+Only level 1 may display a briefing, context hints, control descriptions, route labels, failure advice, or projection lines. Stages 2–30 launch directly. Later failure screens contain only neutral outcome text and actions; retries never announce new obstacles or play a mutation notification sound. Cosmetic motion, physical hazard appearance and control focus/accessibility are not solutions.
 
-See `RELEASE_CHECKLIST.md` for the remaining production checks. No revenue, lifetime popularity, or real-device frame-rate guarantee is made.
+There are 30 code-rendered scene compositions with distinct palettes, primary landmarks, atmosphere and seeded geometry. They are not 30 hand-painted raster artworks. Absolute-position landscape tiles use a twelve-entry LRU cache; geometry does not reset using a camera modulo period. Shared shape vocabulary and repeatable environmental particles remain intentional. Scenery is independent of attempt seeds, so a retry retains the identity of its stage.
+
+## Unchanged scope
+
+The 30 gameplay routes remain modular. They do not yet implement all handcrafted story scenarios from the original GDD. Adaptation is local rules, not trained AI. No checkpoints, revival purchase, analytics, cloud save or online leaderboard. Save schema and challenge-family algorithm remain version 1 for compatibility.

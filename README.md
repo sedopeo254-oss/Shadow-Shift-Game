@@ -1,8 +1,8 @@
 # Shadow Shift
 
-A mysterious mobile puzzle-runner where light creates paths, traps react to failures, and every defeat changes the stage.
+A quiet mobile puzzle-runner through light and shadow.
 
-**Playable alpha 0.3.0 — not a finished Android store release.**
+**Playable alpha 0.4.0 — not a finished Android store release.**
 
 ## العب الآن
 
@@ -10,6 +10,14 @@ A mysterious mobile puzzle-runner where light creates paths, traps react to fail
 - أو شغّل `npm run build` وافتح `dist/Shadow-Shift-Portable.html` كملف مستقل، دون تحميل مكتبات خارجية. السماح بالملفات المحلية يختلف بين متصفحات الهواتف.
 - للموقع الثابت: ارفع محتويات `dist/` أو استخدم جذر المستودع. كل المسارات نسبية وتناسب مجلد GitHub Pages.
 - لإتاحة نسخة ويب من المستودع: Settings → Pages → Deploy from a branch → `main` → `/ (root)`. هذا إعداد على GitHub، وليس خطوة ينفذها هذا الكود تلقائيًا.
+
+## تحديث 0.4.0
+
+المرحلة الأولى وحدها للتعليم. من المرحلة الثانية يبدأ اللعب مباشرة دون تلميحات أو شرح للفخاخ، ولا تُعلن اللعبة ما تغير عند الإعادة. الواجهة أبسط، ولكل مرحلة مشهد مختلف. لا توجد نقاط حفظ.
+
+مشاهد الخلفية الثلاثون مرسومة بالكود: ألوان ومعالم وأجواء مختلفة، وليست ثلاثين صورة مرسومة يدويًا. تظل أشكال هندسية مشتركة بين المشاهد، لكن الخلفية لم تعد شريطًا يلتف ويتكرر أثناء الجري.
+
+تفاصيل الإصدار: `docs/CHANGELOG_0.4.0.md`. نتائج الاختبارات وحدودها: `docs/QA.md`.
 
 ## What's implemented
 
@@ -34,7 +42,7 @@ A mysterious mobile puzzle-runner where light creates paths, traps react to fail
 | Pause | Pause button | P or Escape |
 | Retry after failure | Retry button | R |
 
-Match a bridge's arrow with the sun. Match a gate or UFO marker to open the gate or form a shadow shield. The dotted golden line is not a solid bridge. Death discards collected run shards and returns to the very beginning.
+Instruction labels appear only in stage 1. Later stages contain no solution overlays: the player observes the physical response to sunlight instead. Death discards collected run shards and returns to the very beginning.
 
 ## Development
 
@@ -47,12 +55,12 @@ npm run build
 npm start
 ```
 
-`src/core.js` owns rules, `src/content.js` owns level data/generation, `src/render.js` owns drawing, and `src/app.js` owns browser UI/input. The renderer does not decide collisions or save player position.
+`src/core.js` owns rules, `src/content.js` owns level data/generation, `src/render.js` owns drawing, and `src/app.js` owns browser UI/input; `src/scenery.js` owns stage-specific background art and tutorial visibility policy. The renderer does not decide collisions or save player position.
 
 See `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/QA.md`, and `docs/RELEASE_CHECKLIST.md`.
 
 ## Honest boundaries
 
-This is a working foundation, not a promise of permanent popularity or revenue. It does not contain an APK, ad SDK, purchases, cloud accounts, authoritative leaderboard, full cinematic story, interactive replay-ghost puzzles, reversed-gravity ceiling stages, or a finished final boss. Echo ghosts are visual replays only. No device FPS, battery, retention, or income claim is made without measurement.
+This is a working foundation, not a promise of permanent popularity or revenue. It does not contain an APK, ad SDK, purchases, cloud accounts, authoritative leaderboard, full cinematic story, interactive replay-ghost puzzles, reversed-gravity ceiling stages, or a finished final boss. Replay ghosts were removed in 0.4.0 to avoid later-stage assistance. No device FPS, battery, retention, or income claim is made without measurement.
 
 All game illustrations and sound synthesis in this repository are original procedural code. No downloaded character artwork, font binaries, tracking SDKs, or paid services are required. Repository publication does not by itself grant an open-source license; the owner can choose licensing separately. The previously supplied full design DOCX/PDF are included with the downloadable project package, not duplicated as binary repository assets.

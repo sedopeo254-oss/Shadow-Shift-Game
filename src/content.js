@@ -1,5 +1,5 @@
 /** Content is data, not renderer code. Distances use world units; times use seconds. */
-export const VERSION = '0.3.0';
+export const VERSION = '0.4.0';
 export const CONTENT_VERSION = 1;
 export const WORLD_NAMES = ['الظل الأول','الفخاخ الحية','أطلال النيون','التشوّه الكوني','كابوس الصدى'];
 export const WORLD_EN = ['THE FIRST SHADE','LIVING TRAPS','NEON RUINS','COSMIC DISTORTION','ECHO NIGHTMARE'];
@@ -68,5 +68,5 @@ export function makeLevel(id,attempt=0,profile={},seedOverride=null){
   }
  }
  for(let i=1;i<3;i++)sectors.push(length*i/3);
- return {...definition,seed,variant,attempt,length,obstacles,shards,sectors,signatureCode:challengeCode(id,seed),change:attempt?`تحوّل ${variant+1}: ${LABELS[first]} · زوايا ظل جديدة`:'اصنع الطريق بالضوء. لا توجد نقاط حفظ.'};
+ return {...definition,seed,variant,attempt,length,obstacles,shards,sectors,signatureCode:challengeCode(id,seed),tutorial:id===1};
 }

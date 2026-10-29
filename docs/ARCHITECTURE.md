@@ -8,6 +8,7 @@ The previous prototype was browser-based. This alpha continues that path with na
 
 - `content.js`: authored world metadata, seeded modular routes, challenge codes. Add mechanics deliberately; changing a content algorithm requires a new content/code version.
 - `core.js`: fixed-step simulation, collision, jump buffering, light alignment, progress rewards, save schema. No DOM, renderer, account, network, or audio dependency.
+- `scenery.js`: 30 immutable scene profiles, absolute-world geometry, a bounded twelve-tile LRU, cached sky and one-time landmarks. Retry seeds never control stage identity. `tutorialFor` is true only for stage 1.
 - `render.js`: cached sky, layered ruins, procedural character animation, bounded particles, culling, resolution cap. All images are original code-generated art.
 - `app.js`: ready/play/pause/result/menu state machine, DOM UI, pointer/keyboard bindings, audio and visibility lifecycle.
 - `sw.js`: versioned app-shell cache. A new worker waits; an active attempt is never force-reloaded.
@@ -27,7 +28,7 @@ The previous prototype was browser-based. This alpha continues that path with na
 
 Each challenge cell occupies a bounded interval, with safe separation. Add an obstacle to generation, simulation collision, renderer, readable cue, and tests together. Never render a harmless-looking shape with a larger invisible collider. Run seeded solver tests, then human playtests; the solver proves an automated route, not that reaction timing is comfortable.
 
-Campaign failure history stores only bounded aggregate counters for each of 30 stages. In-session echo traces are capped at 2,400 samples and are never used to resume a run. Daily records are capped at 14 UTC dates. Particles are capped at 100, backgrounds are cached, and the drawing resolution is capped rather than blindly using devicePixelRatio.
+Campaign failure history stores only bounded aggregate counters for each of 30 stages. In-session trace storage remains capped at 2,400 samples and never resumes a run. Rendering of replay ghosts is disabled in 0.4.0. Daily records are capped at 14 UTC dates. Particles are capped at 100, backgrounds are cached, and the drawing resolution is capped rather than blindly using devicePixelRatio.
 
 ## Saves and compatibility
 
