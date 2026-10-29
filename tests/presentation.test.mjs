@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {SCENES,sceneFor,sceneryCell,tutorialFor} from '../src/scenery.js';
-import {makeLevel} from '../src/content.js';
+import {makeLevel,VERSION} from '../src/content.js';
 import {sanitizeSave,freshSave} from '../src/core.js';
 test('Only level one enables onboarding in every mode/attempt',()=>{
  for(let id=1;id<=30;id++)for(let attempt=0;attempt<4;attempt++){
@@ -37,5 +37,5 @@ test('Legacy 0.3 completion saves remain valid and position-free',()=>{
 });
 test('Service worker and portable bundler include the new scenery module',async()=>{
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8'),build=await readFile(new URL('../tools/build.mjs',import.meta.url),'utf8');
- assert.ok(sw.includes('./src/scenery.js'));assert.ok(build.includes("'scenery'"));assert.ok(sw.includes('0.5.0'));
+ assert.ok(sw.includes('./src/scenery.js'));assert.ok(build.includes("'scenery'"));assert.ok(sw.includes(VERSION));
 });

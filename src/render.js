@@ -1,6 +1,8 @@
 import {SKINS,DIRECTIONS} from './content.js';
 import {Scenery,tutorialFor} from './scenery.js';
 import {drawTerrain,drawFalling} from './visuals.js';
+import {drawMachinery} from './traps.js';
+import {visualPosition} from './controls.js';
 const TAU=Math.PI*2;
 const round=(c,x,y,w,h,r)=>{c.beginPath();c.roundRect(x,y,w,h,r);};
 function poly(c,points,fill,stroke){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.stroke();}}
@@ -86,26 +88,17 @@ export class Renderer{
   this.marker(c,x+o.w/2,f-187,`${active?'مفتوحة':'حاذِ الضوء'} · ${DIRECTIONS[o.required+1]}`,active?accent:'#f4ce85');return;
  }
  glow(c,x+o.w/2,f,70,danger+'16');
- if(o.kind==='spike'){
-  c.fillStyle='#3b2437';c.fillRect(x-6,f-5,o.w+12,9);
-  for(let i=0;i<3;i++){const xx=x+i*18;poly(c,[[xx,f],[xx+8,f-32],[xx+17,f]],'#f48b9a','#ffc3c4');poly(c,[[xx+8,f-32],[xx+8,f],[xx+17,f]],'#a34c72');}
- }else if(o.kind==='laser'){
-  for(const xx of [x,x+o.w]){c.fillStyle='#2c2a40';round(c,xx-5,f-35,10,36,3);c.fill();c.fillStyle=danger;c.fillRect(xx-3,f-32,6,4);}
-  c.fillStyle=danger+'38';c.fillRect(x,f-28,o.w,26);c.fillStyle='#ffc2d0';c.fillRect(x,f-28,o.w,2);c.fillStyle='#ff6988';c.fillRect(x,f-15,o.w,2);c.fillRect(x,f-4,o.w,2);
- }else if(o.kind==='saw'){
-  const sx=x+22+Math.sin(run.t*2.6+o.phase)*18,sy=f-23;
-  c.strokeStyle='#ac6179';c.lineWidth=2;c.beginPath();c.moveTo(x-22,f-22);c.lineTo(x+o.w+22,f-22);c.stroke();
-  c.save();c.translate(sx,sy);c.rotate(t*5);const points=[];for(let i=0;i<32;i++){const a=i/32*TAU,r=i%2?17:23;points.push([Math.cos(a)*r,Math.sin(a)*r]);}poly(c,points,'#ca758e','#ffd7df');c.fillStyle='#302740';c.beginPath();c.arc(0,0,10,0,TAU);c.fill();c.fillStyle='#ffc3c4';c.beginPath();c.arc(0,0,3,0,TAU);c.fill();c.restore();
- }
+ drawMachinery(c,o,run,x,f,t,this.settings.reduced);
  if(this.tutorial&&distance<380&&distance>-60){c.strokeStyle=danger+'80';c.setLineDash([4,5]);c.beginPath();c.moveTo(x-22,f+10);c.lineTo(x+o.w+22,f+10);c.stroke();c.setLineDash([]);}
  }
- paint(run,screen,time,save,delta=16){
+ paint(run,screen,time,save,delta=16,fraction=1){
  this.mean=this.mean*.97+delta*.03;this.frames++;
  if(this.settings.quality==='auto'&&this.frames===300&&this.mean>23&&this.cap>1.25){this.cap=1.25;this.resize();}
  const c=this.c;c.setTransform(this.ratio,0,0,this.ratio,0,0);
  const playing=['play','pause','result','ready','settings','confirm-import','editor'].includes(screen)&&run;this.tutorial=tutorialFor(playing?run.level:null);
  const stage=playing?(run.level.sceneId||run.level.id):1,accent=SKINS[save.skin]?.color||'#83f8da';
- const cam=screen==='editor'?(this.editorCamera||0):playing?Math.max(0,run.x-this.w*.24):0,t=this.settings.reduced?0:playing?run.t:time;this.cam=cam;this.stage=stage;
+ const visual=run&&screen==='play'&&run.status==='running'?visualPosition(run,fraction):run;
+ const cam=screen==='editor'?(this.editorCamera||0):playing?Math.max(0,visual.x-this.w*.24):0,t=this.settings.reduced?0:playing?run.t:time;this.cam=cam;this.stage=stage;
  this.background(c,t,stage,cam,!playing,run?.level.length);
  if(!playing){
   const px=this.w<this.h?this.w*.56:this.w*.76,py=this.floor;
@@ -126,7 +119,7 @@ export class Renderer{
  for(const s of run.level.shards){const x=s.x-cam,y=f-s.y;if(x<-30||x>w+30||run.collected.has(s.id))continue;glow(c,x,y,32,'#ffe0a842');c.save();c.translate(x,y+Math.sin(t*3+s.id)*3);poly(c,[[0,-13],[9,0],[0,13],[-9,0]],'#ffe5a7','#fff3d4');poly(c,[[0,-13],[0,13],[9,0]],'#ce9c66');c.restore();}
 
  const endX=run.level.length-cam;if(endX<w+90){glow(c,endX,f-75,110,accent+'33');c.strokeStyle=accent;c.lineWidth=4;c.beginPath();c.ellipse(endX,f-70,32,70,0,0,TAU);c.stroke();c.strokeStyle='#f5e0b2';c.lineWidth=1;c.beginPath();c.ellipse(endX,f-70,40,78,0,0,TAU);c.stroke();this.marker(c,endX,f-170,'الخروج',accent);}
- const heroX=run.x-cam,heroY=f-run.y;
+ const heroX=visual.x-cam,heroY=f-visual.y;
  c.fillStyle='#00000044';c.beginPath();c.ellipse(heroX,f+3,17+run.y*.015,4,0,0,TAU);c.fill();
  if(run.status!=='dead')drawHero(c,heroX,heroY,1,run.motionTime||t,save.character||'boy',accent,run.status==='running',!run.grounded);
  for(let i=this.particles.length-1;i>=0;i--){const p=this.particles[i],dt=Math.min(delta/1000,.03);p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=180*dt;if(p.life<=0){this.particles.splice(i,1);continue;}c.globalAlpha=p.life/p.max;c.fillStyle=p.color;c.fillRect(p.x-cam,p.y,3,3);}c.globalAlpha=1;

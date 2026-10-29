@@ -1,4 +1,4 @@
-# Shadow Shift — 0.5.0
+# Shadow Shift — 0.5.1
 
 A mobile-first light-and-shadow runner with silent retries, surprising falling hazards, and a player-level workshop.
 
@@ -21,6 +21,10 @@ npm run community
 ```
 
 Then open the same localhost address. The service stores accounts, maps and votes in `data/community.sqlite`. `npm start` and `npm run community` are alternative servers, not commands to run on the same port simultaneously. See `docs/COMMUNITY_DEPLOY.md` before public hosting. Committing to GitHub does not deploy the backend; GitHub Pages alone cannot run this Node service.
+
+## 0.5.1 polish
+
+Owned multi-touch input, interpolated runner/camera rendering, upgraded machinery/falling-object art, real editor object previews, and selected-object preservation when dragging. See `docs/CHANGELOG_0.5.1.md` and the re-run `docs/QA.md`. Engine `0.5` replays and maps remain compatible.
 
 ## What changed
 

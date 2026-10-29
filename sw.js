@@ -1,6 +1,6 @@
 // Keep updates waiting until old clients close. Never reload an active run.
-const CACHE='shadow-shift-0.5.0-1';
-const FILES=['./','./index.html','./src/style.css','./src/quiet.css','./src/workshop.css','./src/workshop.js','./src/maps.js','./src/visuals.js','./src/app.js','./src/core.js','./src/content.js','./src/render.js','./src/scenery.js','./assets/icon.svg','./manifest.webmanifest'];
+const CACHE='shadow-shift-0.5.1-1';
+const FILES=['./','./index.html','./src/style.css','./src/quiet.css','./src/workshop.css','./src/workshop.js','./src/maps.js','./src/controls.js','./src/traps.js','./src/visuals.js','./src/app.js','./src/core.js','./src/content.js','./src/render.js','./src/scenery.js','./assets/icon.svg','./manifest.webmanifest'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES))));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('shadow-shift-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{

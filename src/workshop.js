@@ -1,6 +1,7 @@
 import {MAP_KINDS,MAP_ENGINE,blankMap,obstacle,sanitizeMap,mapToLevel,mapKey,proofFor,MapLibrary,DEMO_MAPS} from './maps.js';
 import {SCENES} from './scenery.js';
 import {Run} from './core.js';
+import {drawDropPreview} from './traps.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clone=x=>JSON.parse(JSON.stringify(x));
 const $=id=>document.getElementById(id);
@@ -18,7 +19,7 @@ export class Workshop{
  }
  remember(){try{this.storage.setItem('shadow-shift.editor.v1',JSON.stringify(this.draft));}catch{this.app.toast('تعذّر حفظ المسودة. استخدم تصدير.');}}
  pushHistory(){this.history.push(clone(this.draft));if(this.history.length>50)this.history.shift();this.future=[];}
- accept(next){try{const clean=sanitizeMap(next);this.pushHistory();this.draft=clean;this.proof=null;this.remember();this.preview();this.render();return true;}catch(e){this.app.toast(e.message);return false;}}
+ accept(next){try{const target=next.obstacles[this.selected];const clean=sanitizeMap(next);this.pushHistory();this.draft=clean;this.selected=target?clean.obstacles.findIndex(o=>o.kind===target.kind&&o.x===target.x):-1;this.proof=null;this.remember();this.preview();this.render();return true;}catch(e){this.app.toast(e.message);return false;}}
  preview(){const a=this.app;a.run=new Run(mapToLevel(this.draft));a.run.x=80;a.renderer.editorCamera=this.camera;}
  openEditor(map=null,id=null){
   const a=this.app;a.release();if(map){this.draft=sanitizeMap(map);this.localId=id;this.proof=this.library.items.find(e=>e.id===id)?.proof||null;this.history=[];this.future=[];this.camera=0;}
@@ -43,15 +44,15 @@ export class Workshop{
   this.draft.obstacles.forEach((o,i)=>{
    const x=o.x-cam;if(x+o.w<0||x>w)return;const special=['cow','meteor','crate'].includes(o.kind);
    c.strokeStyle=i===this.selected?'#f8dfab':'#beded35a';c.lineWidth=i===this.selected?2:1;c.setLineDash([4,4]);c.strokeRect(x-7,f-(special?160:90),o.w+14,special?160:90);c.setLineDash([]);c.fillStyle='#e0e9e6';c.font='12px Tahoma';c.textAlign='center';c.fillText(MAP_KINDS[o.kind],x+o.w/2,f-(special?170:100));
-   if(special){c.fillStyle='#d1ddd588';c.font='22px Tahoma';c.fillText(o.kind==='cow'?'◕':o.kind==='meteor'?'✦':'▣',x+o.w/2,f-90);}
+   if(special)drawDropPreview(c,o,cam,f);
   });
   c.fillStyle='#f5dab5';c.font='13px Tahoma';c.textAlign='left';if(cam<400)c.fillText('START',80-cam,f-90);if(this.draft.length-cam<w)c.fillText('FINISH',this.draft.length-cam-50,f-170);c.restore();
  }
  pointer(e){
   if(this.app.screen!=='editor')return;
   const a=this.app,r=a.renderer,wx=e.clientX/r.scale+this.camera;
-  if(e.type==='pointerdown'){e.preventDefault();e.target.setPointerCapture(e.pointerId);const i=this.draft.obstacles.findIndex(o=>wx>=o.x-15&&wx<=o.x+o.w+15);this.drag={startX:e.clientX,camera:this.camera,index:i,old:clone(this.draft),pointer:e.pointerId};if(this.tool==='select'){this.selected=i;this.render();}}
-  if(!this.drag)return;
+  if(e.type==='pointerdown'){if(this.drag)return;e.preventDefault();e.target.setPointerCapture(e.pointerId);const i=this.draft.obstacles.findIndex(o=>wx>=o.x-15&&wx<=o.x+o.w+15);this.drag={startX:e.clientX,camera:this.camera,index:i,old:clone(this.draft),pointer:e.pointerId};if(this.tool==='select'){this.selected=i;this.render();}}
+  if(!this.drag||e.pointerId!==this.drag.pointer)return;
   if(e.type==='pointermove'&&Math.abs(e.clientX-this.drag.startX)>6){
    this.drag.moved=true;
    if(this.tool==='pan'||(this.tool==='select'&&this.drag.index<0)){this.camera=Math.max(0,Math.min(this.draft.length-r.w,(this.drag.camera-(e.clientX-this.drag.startX)/r.scale)));r.editorCamera=this.camera;const sc=$('editor-scroll');if(sc)sc.value=this.camera;}

@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {ActionLatch,sunlightAt,visualPosition} from '../src/controls.js';
+import {Run,STEP} from '../src/core.js';
+import {makeLevel} from '../src/content.js';
+test('Jump remains held until every owning input is released',()=>{let down=0,up=0;const l=new ActionLatch(()=>down++,()=>up++);l.press('finger1');l.press('finger2');l.release('finger2');assert.equal(down,1);assert.equal(up,0);assert.ok(l.held);l.release('finger1');assert.equal(up,1);assert.equal(l.held,false);});
+test('Unrelated releases and lost-capture duplicates do not truncate jumps',()=>{let up=0;const l=new ActionLatch(()=>{},()=>up++);l.press('jump');l.release('sun');l.release('keyboard');assert.ok(l.held);l.release('jump');l.release('jump');assert.equal(up,1);});
+test('Keyboard plus touch share one action without repeat triggering',()=>{let down=0,up=0;const l=new ActionLatch(()=>down++,()=>up++);l.press('Space');l.press('Space');l.press('pointer:7');l.release('Space');assert.equal(down,1);assert.equal(up,0);l.release();assert.equal(up,1);l.release();assert.equal(up,1);});
+test('Pause clears held inputs and allows a fresh jump',()=>{let presses=0;const l=new ActionLatch(()=>presses++,()=>{});l.press('finger');l.release();l.press('finger');assert.equal(presses,2);});
+test('Sunlight screen mapping snaps and clamps three valid directions',()=>{const r={left:40,width:120};for(const [x,want] of [[-100,-1],[40,-1],[60,-1],[90,0],[100,0],[140,1],[500,1]])assert.equal(sunlightAt(x,r),want);assert.equal(sunlightAt(NaN,r),0);assert.equal(sunlightAt(100,{left:0,width:0}),0);});
+test('Visual interpolation clamps and cannot mutate physics or proof history',()=>{const run=new Run(makeLevel(2));run.start();run.pressJump();run.update(STEP);const snapshot=JSON.stringify(run);const a=visualPosition(run,0),b=visualPosition(run,1),m=visualPosition(run,.5);assert.equal(a.x,run.prevX);assert.equal(b.x,run.x);assert.equal(m.x,(a.x+b.x)/2);assert.equal(visualPosition(run,9).x,b.x);assert.equal(visualPosition(run,-9).x,a.x);assert.equal(JSON.stringify(run),snapshot);});

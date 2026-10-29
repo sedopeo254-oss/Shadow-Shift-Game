@@ -3,6 +3,7 @@ import {Run,STEP,SaveStore,recordDeath,recordWin,sanitizeSave} from './core.js';
 import {Renderer,drawHero} from './render.js';
 import {tutorialFor} from './scenery.js';
 import {Workshop} from './workshop.js';
+import {ActionLatch,sunlightAt} from './controls.js';
 const $=id=>document.getElementById(id);
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 class AudioEngine{
@@ -19,6 +20,7 @@ class ShadowShift{
   this.store=new SaveStore(storage);this.save=this.store.data;
   if(!this.save.character&&matchMedia('(prefers-reduced-motion: reduce)').matches)this.save.settings.reduced=true;
   this.renderer=new Renderer($('world'));this.audio=new AudioEngine();this.screen='menu';this.run=null;this.mode='campaign';this.attempt=0;this.seed=null;this.worldTab=Math.floor((this.save.unlocked-1)/6);this.accumulator=0;this.last=0;this.uiClock=0;this.lastHint='';this.toastTimer=0;this.selectedSkin=this.save.skin;this.pendingImport=null;this.settingsReturn='menu';this.result=null;
+  this.jumpLatch=new ActionLatch(()=>{this.audio.unlock();this.run?.pressJump();$('jump').classList.add('held');},()=>{this.run?.releaseJump();$('jump').classList.remove('held');});this.sunPointer=null;
   this.workshop=new Workshop(this,storage);this.bind();this.applySettings();this.showMenu();requestAnimationFrame(t=>this.frame(t));this.registerOffline();
  }
  applySettings(){document.body.classList.toggle('left-handed',this.save.settings.leftHand);document.body.classList.toggle('reduce',this.save.settings.reduced);this.renderer.configure(this.save.settings);}
@@ -69,8 +71,8 @@ class ShadowShift{
 
  pause(){if(this.screen!=='play')return;this.screen='pause';this.release();this.audio.suspend();this.accumulator=0;this.render();}
  resume(){if(!this.run)return;this.screen='play';this.audio.unlock();this.accumulator=0;this.last=performance.now();this.render();}
- release(){this.run?.releaseJump();$('jump').classList.remove('held');}
- jump(){if(this.screen!=='play')return;this.audio.unlock();this.run.pressJump();$('jump').classList.add('held');}
+ release(source){if(source===undefined){this.jumpLatch.release();this.run?.releaseJump();this.sunPointer=null;$('jump').classList.remove('held');}else this.jumpLatch.release(source);}
+ jump(source='button'){if(this.screen!=='play')return;this.jumpLatch.press(source);}
  setSun(value){if(!['play','ready'].includes(this.screen)||!this.run)return;this.run.setSun(value);$('sun').value=String(Math.round(this.run.sun));}
  updateHUD(){
   if(!this.run)return;const r=this.run,l=r.level;
@@ -86,7 +88,7 @@ class ShadowShift{
  }
  processEvents(){const r=this.run;while(r?.events.length){const e=r.events.shift();this.audio.effect(e.type,this.save.settings);
   if(e.type==='jump'||e.type==='land')this.renderer.burst(r.x,this.renderer.floor,SKINS[this.save.skin].color,5);
-  if(e.type==='impact'){this.renderer.burst(e.x,this.renderer.floor-6,e.kind==='meteor'?'#ffd092':'#c9c6b5',24);this.audio.tone(e.kind==='cow'?110:65,.18,'triangle',this.save.settings.sound?.025:.0001);}
+  if(e.type==='impact'){this.renderer.burst(e.x,this.renderer.floor-6,e.kind==='meteor'?'#ffd092':'#c9c6b5',24);if(this.save.settings.sound)this.audio.tone(e.kind==='cow'?110:65,.18,'triangle',.025);}
   if(e.type==='shard')this.renderer.burst(r.x,this.renderer.floor-r.y-25,'#ffe0a3',16);
   if(e.type==='death'){
    recordDeath(this.save,r,this.mode);this.persist();this.release();this.renderer.burst(r.x,this.renderer.floor-r.y-25,'#ffd4dd',38);this.screen='result';this.result=null;this.render();
@@ -94,10 +96,11 @@ class ShadowShift{
   if(e.type==='win'){if(['editor-test','player-map'].includes(this.mode)){this.result={...r.result(),reward:0};this.workshop.won(r);}else this.result=recordWin(this.save,r,this.mode,this.dailyDate);this.persist();this.release();this.screen='result';this.render();}
  }}
  frame(now){const delta=this.last?Math.min(100,now-this.last):16;this.last=now;
+  if(document.hidden){this.accumulator=0;requestAnimationFrame(t=>this.frame(t));return;}
   if(this.screen==='play'&&this.run){this.accumulator+=delta/1000;let steps=0;while(this.accumulator>=STEP&&steps++<12&&this.screen==='play'){this.run.update(STEP);this.accumulator-=STEP;this.processEvents();}
    this.uiClock+=delta;if(this.uiClock>70){this.updateHUD();this.uiClock=0;}
   }else this.accumulator=0;
-  this.renderer.paint(this.run,this.screen,now/1000,this.save,delta);this.workshop.paintOverlay();
+  this.renderer.paint(this.run,this.screen,now/1000,this.save,delta,this.screen==='play'?this.accumulator/STEP:1);this.workshop.paintOverlay();
   if(!document.hidden&&['menu','play'].includes(this.screen))this.audio.music(now/1000,this.save.settings.music);
   requestAnimationFrame(t=>this.frame(t));
  }
@@ -138,20 +141,24 @@ class ShadowShift{
   $('ui').addEventListener('click',e=>{const button=e.target.closest('[data-action]');if(button&&!button.disabled)this.action(button.dataset.action,button.dataset.value).catch(err=>{console.error(err);this.toast('تعذّر تنفيذ الإجراء. لم يتم تخطي أي مرحلة.');});});
   $('ui').addEventListener('change',e=>{const key=e.target.dataset.setting;if(!key)return;this.save.settings[key]=e.target.type==='checkbox'?e.target.checked:e.target.value;this.persist();this.applySettings();});
   $('pause').addEventListener('click',()=>this.pause());$('sun').addEventListener('input',e=>this.setSun(e.target.value));
-  $('jump').addEventListener('pointerdown',e=>{e.preventDefault();$('jump').setPointerCapture(e.pointerId);this.jump();});
-  for(const event of ['pointerup','pointercancel','lostpointercapture'])$('jump').addEventListener(event,()=>this.release());
+  $('jump').addEventListener('pointerdown',e=>{e.preventDefault();$('jump').setPointerCapture(e.pointerId);this.jump('pointer:'+e.pointerId);});
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])$('jump').addEventListener(event,e=>this.release('pointer:'+e.pointerId));
+  const sun=$('sun');
+  sun.addEventListener('pointerdown',e=>{if(this.screen!=='play'||this.sunPointer!==null)return;e.preventDefault();this.sunPointer=e.pointerId;sun.setPointerCapture(e.pointerId);this.setSun(sunlightAt(e.clientX,sun.getBoundingClientRect()));});
+  sun.addEventListener('pointermove',e=>{if(e.pointerId!==this.sunPointer)return;e.preventDefault();this.setSun(sunlightAt(e.clientX,sun.getBoundingClientRect()));});
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])sun.addEventListener(event,e=>{if(e.pointerId===this.sunPointer)this.sunPointer=null;});
   window.addEventListener('keydown',e=>{
    if(['editor','playerMaps','workLogin','workPublish','workDelete'].includes(this.screen))return;
    if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)&&document.activeElement?.type!=='range')return;
    if(['Space','ArrowUp','ArrowLeft','ArrowRight','Escape','KeyP','Digit1','Digit2','Digit3','KeyA','KeyD'].includes(e.code))e.preventDefault();
    if(e.repeat)return;
-   if(['Space','ArrowUp','KeyW'].includes(e.code))this.jump();
+   if(['Space','ArrowUp','KeyW'].includes(e.code))this.jump('key:'+e.code);
    if(e.code==='Digit1')this.setSun(-1);if(e.code==='Digit2')this.setSun(0);if(e.code==='Digit3')this.setSun(1);
    if(['ArrowLeft','KeyA'].includes(e.code))this.setSun(Math.round(this.run?.sun||0)-1);if(['ArrowRight','KeyD'].includes(e.code))this.setSun(Math.round(this.run?.sun||0)+1);
    if(['Escape','KeyP'].includes(e.code)){if(this.screen==='play')this.pause();else if(this.screen==='pause')this.resume();}
    if(e.code==='Enter'&&this.screen==='ready')this.launch();if(e.code==='KeyR'&&this.screen==='result')this.retry();
   });
-  window.addEventListener('keyup',e=>{if(['Space','ArrowUp','KeyW'].includes(e.code))this.release();});
+  window.addEventListener('keyup',e=>{if(['Space','ArrowUp','KeyW'].includes(e.code))this.release('key:'+e.code);});
   window.addEventListener('blur',()=>this.pause());document.addEventListener('visibilitychange',()=>{if(document.hidden){this.pause();this.audio.suspend();}});
   window.addEventListener('resize',()=>{this.renderer.resize();});
   $('import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>65536)throw new Error('ملف كبير جدًا');this.pendingImport=sanitizeSave(JSON.parse(await file.text()));this.screen='confirm-import';this.render();}catch{this.toast('تعذّر قراءة الملف. حفظك الحالي لم يتغير.');}e.target.value='';});

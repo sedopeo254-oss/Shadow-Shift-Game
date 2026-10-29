@@ -119,6 +119,8 @@ with sync_playwright() as w:
  p.evaluate("__shadowShift.workshop.playMap(__SS.maps.DEMO_MAPS[1].map)")
  p.evaluate('''()=>{const a=__shadowShift,r=a.run,o=r.level.obstacles.find(o=>o.kind==='meteor');r.x=o.x-200;r.falling.set(o.id,{at:r.t-.55,impact:false});r.status='ready';}''')
  p.wait_for_timeout(100);shot(p,'05-meteor-gameplay.png')
+ # Close earlier contexts before the timing-sensitive touch assertion.
+ p.context.close();p2.context.close()
  # Mobile editor placement plus input resizing.
  m=boot(b,{'width':430,'height':932},False,True);m.locator('[data-action=workshop]').tap()
  m.locator('[data-work=tool][data-value=spike]').tap()
@@ -131,11 +133,12 @@ with sync_playwright() as w:
  ck('Character selection resumes the pending custom test',m.evaluate('__shadowShift.mode')=='editor-test')
  j=m.locator('#jump').bounding_box();sun=m.locator('#sun').bounding_box();cdp=m.context.new_cdp_session(m)
  cdp.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':j['x']+j['width']/2,'y':j['y']+j['height']/2,'id':1},{'x':sun['x']+sun['width']*.9,'y':sun['y']+sun['height']/2,'id':2}]});m.wait_for_timeout(100)
+ m.wait_for_function('__shadowShift.run.y > 15 && __shadowShift.run.sun === 1',timeout=2000)
  ck('Two-touch jump and sunlight work together',m.evaluate('__shadowShift.run.y')>15 and m.evaluate('__shadowShift.run.sun')==1)
  cdp.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]})
  m.locator('#pause').tap();tt=m.evaluate('__shadowShift.run.t');m.wait_for_timeout(100);ck('Pause freezes new falling system and movement',m.evaluate('__shadowShift.run.t')==tt)
  m.locator('[data-action=menu]').tap();m.locator('[data-action=playerMaps]').tap();m.locator('[data-work=tab][data-value=online]').tap();m.wait_for_timeout(100)
  ck('Standalone build never invents online map votes',m.locator('[data-work=like]').count()==0 and 'خادم' in m.locator('#ui').inner_text())
  ck('Zero JavaScript page errors',not errors)
- report={'version':'0.5.0','browser':b.version,'checks':checks,'count':len(checks),'errors':errors,'real_shared_server_test':True,'limits':'set_content + test-only memory storage and HTTP bridge to localhost service. Browser URL navigation blocked. Server HTTP/session headers tested separately by Node tests. No real browser hosting, cookie persistence, SW upgrades, real Android device, frame-time, battery, public hosting or revenue verification.'}
+ report={'version':'0.5.1','browser':b.version,'checks':checks,'count':len(checks),'errors':errors,'real_shared_server_test':True,'limits':'set_content + test-only memory storage and HTTP bridge to localhost service. Browser URL navigation blocked. Server HTTP/session headers tested separately by Node tests. No real browser hosting, cookie persistence, SW upgrades, real Android device, frame-time, battery, public hosting or revenue verification.'}
  (OUT/'browser-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps({'count':len(checks),'errors':errors,'browser':b.version},indent=2));b.close()

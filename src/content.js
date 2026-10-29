@@ -1,5 +1,5 @@
 /** Content is data, not renderer code. Distances use world units; times use seconds. */
-export const VERSION = '0.5.0';
+export const VERSION = '0.5.1';
 export const CONTENT_VERSION = 2;
 export const WORLD_NAMES = ['الظل الأول','الفخاخ الحية','أطلال النيون','التشوّه الكوني','كابوس الصدى'];
 export const WORLD_EN = ['THE FIRST SHADE','LIVING TRAPS','NEON RUINS','COSMIC DISTORTION','ECHO NIGHTMARE'];

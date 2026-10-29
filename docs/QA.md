@@ -1,8 +1,10 @@
-# Alpha 0.5.0 verification — 2026-10-29
+# Alpha 0.5.1 verification — 2026-10-29
 
 ## Executed
 
-- `npm run check`: **88 tests passed; 0 failed**, Node 22.16.0.
+Re-run from the downloaded repository sources for this delivery. Six additional input/interpolation tests cover multi-owner presses/releases, unrelated pointer release, repeated keys, clear-on-pause, sunlight coordinate mapping and render-only interpolation.
+
+- `npm run check`: **94 tests passed; 0 failed**, Node 22.16.0.
 - `npm run build`: successful; fingerprint recorded in `BUILD_INFO.json` in the downloadable package.
 - `python tools/playtest_05.py`: **37 browser assertions passed; 0 page errors**, Chromium 144.0.7559.96.
 
@@ -15,6 +17,8 @@ The browser suite tests actual editor pointer placement, dragging, undo/redo, lo
 ## Test harness and limits
 
 Browser URL navigation is blocked by this environment's policy (`ERR_BLOCKED_BY_ADMINISTRATOR`). Tests load the exact generated portable HTML using Playwright `set_content`. An inspection handle and in-memory storage adapter exist only in the test page. For community UI tests, a test-only bridge forwards the UI's API calls to an actual temporary HTTP server. The bridge does not verify browser cookie enforcement, CORS or production networking. Separate Node HTTP tests verify session headers and server-side validation.
+
+A short fixed-delay multitouch assertion was initially timing-sensitive with several active headless pages. The harness now closes earlier contexts before the touch check and waits for the observed input state; three isolated reproductions and the complete suite passed.
 
 Screenshots of the cow/meteor use controlled simulation positions to show the effect clearly. Editor interactions and publication flows are exercised by UI clicks. The account names and votes in `02-player-maps-server-test.png` are test data, not public players or engagement. The temporary service is destroyed after the test; no user database is shipped.
 
