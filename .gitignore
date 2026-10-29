@@ -1,0 +1,5 @@
+dist/
+node_modules/
+playtest-output/
+*.log
+.DS_Store
