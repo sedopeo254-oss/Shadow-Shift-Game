@@ -2,6 +2,7 @@ import {VERSION,LEVELS,WORLD_NAMES,WORLD_EN,SKINS,LABELS,DIRECTIONS,makeLevel,da
 import {Run,STEP,SaveStore,recordDeath,recordWin,sanitizeSave} from './core.js';
 import {Renderer,drawHero} from './render.js';
 import {tutorialFor} from './scenery.js';
+import {Workshop} from './workshop.js';
 const $=id=>document.getElementById(id);
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 class AudioEngine{
@@ -18,7 +19,7 @@ class ShadowShift{
   this.store=new SaveStore(storage);this.save=this.store.data;
   if(!this.save.character&&matchMedia('(prefers-reduced-motion: reduce)').matches)this.save.settings.reduced=true;
   this.renderer=new Renderer($('world'));this.audio=new AudioEngine();this.screen='menu';this.run=null;this.mode='campaign';this.attempt=0;this.seed=null;this.worldTab=Math.floor((this.save.unlocked-1)/6);this.accumulator=0;this.last=0;this.uiClock=0;this.lastHint='';this.toastTimer=0;this.selectedSkin=this.save.skin;this.pendingImport=null;this.settingsReturn='menu';this.result=null;
-  this.bind();this.applySettings();this.showMenu();requestAnimationFrame(t=>this.frame(t));this.registerOffline();
+  this.workshop=new Workshop(this,storage);this.bind();this.applySettings();this.showMenu();requestAnimationFrame(t=>this.frame(t));this.registerOffline();
  }
  applySettings(){document.body.classList.toggle('left-handed',this.save.settings.leftHand);document.body.classList.toggle('reduce',this.save.settings.reduced);this.renderer.configure(this.save.settings);}
  persist(){this.store.data=this.save;const ok=this.store.save();this.save=this.store.data;if(!ok)this.toast(this.store.warning);}
@@ -26,20 +27,22 @@ class ShadowShift{
  modal(body,small=false){return `<div class="modal-backdrop"><section class="panel ${small?'small':''}">${body}</section></div>`;}
  header(title,subtitle='',back='menu'){return `<div class="panel-header"><div><div class="kicker">SHADOW SHIFT</div><h2>${title}</h2><p>${subtitle}</p></div><button class="close" data-action="${back}" aria-label="إغلاق">×</button></div>`;}
  topbar(){return `<header class="topbar"><div class="brand"><i></i> SHADOW SHIFT</div><div class="top-actions"><button class="icon-button" data-action="settings" aria-label="الإعدادات">☷</button></div></header>`;}
- showMenu(){this.release();this.screen='menu';this.run=null;this.accumulator=0;this.clearHint();this.render();}
+ showMenu(){if(this.workshop)this.workshop.pendingPlay=null;document.body.classList.remove('editing');this.release();this.screen='menu';this.run=null;this.accumulator=0;this.clearHint();this.render();}
  render(){
+  document.body.classList.toggle('editing',this.screen==='editor');
+  if(['editor','playerMaps','workLogin','workPublish','workDelete'].includes(this.screen)){this.workshop.render();return;}
   const s=this.save;const tutorial=tutorialFor(this.run?.level);document.body.classList.toggle('tutorial',tutorial);document.body.classList.toggle('quiet-play',!tutorial);document.body.classList.toggle('playing',['play','ready','pause','result'].includes(this.screen));$('hud').hidden=!['play','pause','ready','result'].includes(this.screen);$('controls').style.visibility=this.screen==='play'?'visible':'hidden';$('pause').disabled=this.screen!=='play';
   if(!tutorial)this.clearHint();
   const stars=Object.values(s.completed).reduce((a,c)=>a+c.stars,0);
   let html='';
-  if(this.screen==='menu')html=`${this.topbar()}<section class="hero-copy"><p class="eyebrow">A JOURNEY THROUGH LIGHT</p><h1>SHADOW<em>SHIFT</em></h1><p class="hero-description">بين الضوء والظل، طريق ينتظرُك.</p><div class="play-actions"><button class="primary" data-action="continue">${s.unlocked>1?'أكمل الرحلة':'ابدأ الرحلة'} <span>↗</span></button><button class="secondary" data-action="daily">تحدّي اليوم ◇</button></div></section><footer class="menu-footer"><nav class="footer-nav"><button class="nav-item" data-action="map"><small>01 / WORLDS</small><b>العوالم · ${Object.keys(s.completed).length}/30</b></button><button class="nav-item" data-action="characters"><small>02 / YOUR ECHO</small><b>اختر صداك</b></button><button class="nav-item" data-action="challenge"><small>03 / CHALLENGES</small><b>التحديات</b></button></nav><div class="rule"><strong>${stars} / 90</strong></div></footer>${this.store.warning?`<div class="storage-note">${escape(this.store.warning)}</div>`:''}`;
+  if(this.screen==='menu')html=`${this.topbar()}<section class="hero-copy"><p class="eyebrow">A JOURNEY THROUGH LIGHT</p><h1>SHADOW<em>SHIFT</em></h1><p class="hero-description">بين الضوء والظل، طريق ينتظرُك.</p><div class="play-actions"><button class="primary" data-action="continue">${s.unlocked>1?'أكمل الرحلة':'ابدأ الرحلة'} <span>↗</span></button><button class="secondary" data-action="daily">تحدّي اليوم ◇</button></div></section><footer class="menu-footer"><nav class="footer-nav"><button class="nav-item" data-action="map"><small>01 / WORLDS</small><b>العوالم · ${Object.keys(s.completed).length}/30</b></button><button class="nav-item" data-action="characters"><small>02 / YOUR ECHO</small><b>اختر صداك</b></button><button class="nav-item" data-action="challenge"><small>03 / CHALLENGES</small><b>التحديات</b></button><button class="nav-item" data-action="workshop"><small>04 / WORKSHOP</small><b>وضع المطور</b></button><button class="nav-item" data-action="playerMaps"><small>05 / COMMUNITY</small><b>Player Maps</b></button></nav><div class="rule"><strong>${stars} / 90</strong></div></footer>${this.store.warning?`<div class="storage-note">${escape(this.store.warning)}</div>`:''}`;
   if(this.screen==='map'){
    const world=this.worldTab;
    html=this.modal(`${this.header('اختر مسارك','خمسة عوالم · ثلاثون مرحلة')}<div class="world-tabs">${WORLD_NAMES.map((n,i)=>`<button class="world-tab ${world===i?'active':''}" data-action="world" data-value="${i}" aria-label="${n}">${String(i+1).padStart(2,'0')}</button>`).join('')}</div><div class="world-heading"><b class="world-number">0${world+1}</b><div><h3>${WORLD_NAMES[world]}</h3><small>${WORLD_EN[world]}</small></div></div><div class="levels">${LEVELS.filter(l=>l.world===world).map(l=>`<button class="level ${l.id===s.unlocked?'current':''}" data-action="level" data-value="${l.id}" ${l.id>s.unlocked?'disabled':''}><b>${l.id>s.unlocked?'⌑':String(l.id).padStart(2,'0')}</b><span>${l.name}</span><small>${'★'.repeat(s.completed[l.id]?.stars||0)}${'☆'.repeat(3-(s.completed[l.id]?.stars||0))}</small></button>`).join('')}</div><div class="map-bottom"><span class="progress-summary">${stars}/90 نجمة · ${s.credits} شظية تجميلية</span><button class="secondary" data-action="continue">المرحلة ${s.unlocked} ←</button></div>`);
   }
   if(this.screen==='characters')html=this.modal(`${this.header('اختر صداك','اختر المظهر الذي يرافق رحلتك.')}<div class="characters">${['boy','girl'].map((kind,i)=>`<button class="character ${s.character===kind?'selected':''}" data-action="character" data-value="${kind}"><canvas data-portrait="${kind}" width="300" height="200" aria-label="${i?'البنت':'الولد'}"></canvas><b>${i?'البنت':'الولد'}</b><small>${i?'ECHO / NOVA':'ECHO / ORION'}</small></button>`).join('')}</div><div class="credit-bar"><span>ألوان الوشاح · دون أي قوة إضافية</span><b>◇ ${s.credits}</b></div><div class="wardrobe">${SKINS.map(k=>`<button class="skin ${this.selectedSkin===k.id?'selected':''} ${s.owned.includes(k.id)?'':'locked'}" style="--swatch:${k.color}" data-action="skin" data-value="${k.id}" aria-label="${k.name}"><i></i></button>`).join('')}</div><div class="skin-name">${SKINS[this.selectedSkin].name} ${s.owned.includes(this.selectedSkin)?'· مفتوح':`· ${SKINS[this.selectedSkin].price} شظية`}</div>${!s.owned.includes(this.selectedSkin)?`<button class="secondary" data-action="buy-skin" ${s.credits<SKINS[this.selectedSkin].price?'disabled':''}>افتح اللون بالشظايا</button>`:''}<div class="screen-actions"><button class="primary" data-action="character-done" ${!s.character?'disabled':''}>${this.pendingStart?'دخول المرحلة':'اعتماد المظهر'} ↗</button></div>`);
-  if(this.screen==='settings')html=this.modal(`${this.header('اضبط تجربتك','التأثيرات لا تغيّر القواعد أو مستوى الصعوبة.','close-settings')}<label class="setting">المؤثرات الصوتية<input type="checkbox" data-setting="sound" ${s.settings.sound?'checked':''}></label><label class="setting">موسيقى محيطية هادئة<input type="checkbox" data-setting="music" ${s.settings.music?'checked':''}></label><label class="setting">تقليل الحركة والوميض<input type="checkbox" data-setting="reduced" ${s.settings.reduced?'checked':''}></label><label class="setting">عكس مكان أزرار اللمس<input type="checkbox" data-setting="leftHand" ${s.settings.leftHand?'checked':''}></label><label class="setting">دقة الرسم<select data-setting="quality"><option value="auto" ${s.settings.quality==='auto'?'selected':''}>تلقائية</option><option value="high" ${s.settings.quality==='high'?'selected':''}>عالية</option><option value="low" ${s.settings.quality==='low'?'selected':''}>اقتصادية</option></select></label><div class="notice">يحفظ الجهاز المراحل المكتملة والمظاهر فقط، وليس مكانك داخل المرحلة. تصدير الحفظ يحمي تقدمك عند تغيير الجهاز أو مسح بيانات المتصفح.</div><div class="settings-actions"><button class="secondary" data-action="export">تصدير الحفظ</button><button class="secondary" data-action="import">استيراد الحفظ</button><button class="secondary" data-action="fullscreen">ملء الشاشة</button></div><p class="muted" style="margin-top:15px">دون حساب، أو تتبّع إعلاني، أو إحياء مدفوع. النسخة ${VERSION}.</p>` ,true);
-  if(this.screen==='challenge')html=this.modal(`${this.header('التحديات','أدخل رمزًا أو اختر وجهتك.')}<p class="muted">شارك الرمز مع أصدقائك. النتائج محفوظة على هذا الجهاز.</p><input class="challenge-input" id="challenge-code" maxlength="24" autocomplete="off" spellcheck="false" placeholder="SS1-19-5A17C0DE" aria-label="رمز التحدي"><div id="challenge-error" class="challenge-error"></div><div class="screen-actions"><button class="primary" data-action="load-code">ابدأ التحدّي</button><button class="secondary" data-action="new-code">رمز جديد</button></div><div class="section-line"></div><p class="muted">وجهات مستقلة</p><div class="screen-actions"><button class="secondary" data-action="sample" data-value="8">المرصد</button><button class="secondary" data-action="sample" data-value="19">أول تماس</button></div>`);
+  if(this.screen==='settings')html=this.modal(`${this.header('اضبط تجربتك','التأثيرات لا تغيّر القواعد أو مستوى الصعوبة.','close-settings')}<label class="setting">المؤثرات الصوتية<input type="checkbox" data-setting="sound" ${s.settings.sound?'checked':''}></label><label class="setting">موسيقى محيطية هادئة<input type="checkbox" data-setting="music" ${s.settings.music?'checked':''}></label><label class="setting">تقليل الحركة والوميض<input type="checkbox" data-setting="reduced" ${s.settings.reduced?'checked':''}></label><label class="setting">عكس مكان أزرار اللمس<input type="checkbox" data-setting="leftHand" ${s.settings.leftHand?'checked':''}></label><label class="setting">دقة الرسم<select data-setting="quality"><option value="auto" ${s.settings.quality==='auto'?'selected':''}>تلقائية</option><option value="high" ${s.settings.quality==='high'?'selected':''}>عالية</option><option value="low" ${s.settings.quality==='low'?'selected':''}>اقتصادية</option></select></label><div class="notice">يحفظ الجهاز المراحل المكتملة والمظاهر فقط، وليس مكانك داخل المرحلة. تصدير الحفظ يحمي تقدمك عند تغيير الجهاز أو مسح بيانات المتصفح.</div><div class="settings-actions"><button class="secondary" data-action="export">تصدير الحفظ</button><button class="secondary" data-action="import">استيراد الحفظ</button><button class="secondary" data-action="fullscreen">ملء الشاشة</button></div><p class="muted" style="margin-top:15px">اللعب المحلي لا يحتاج حسابًا. لا تتبّع إعلاني أو إحياء مدفوع. النسخة ${VERSION}.</p>` ,true);
+  if(this.screen==='challenge')html=this.modal(`${this.header('التحديات','أدخل رمزًا أو اختر وجهتك.')}<p class="muted">شارك الرمز مع أصدقائك. النتائج محفوظة على هذا الجهاز.</p><input class="challenge-input" id="challenge-code" maxlength="24" autocomplete="off" spellcheck="false" placeholder="SS2-19-5A17C0DE" aria-label="رمز التحدي"><div id="challenge-error" class="challenge-error"></div><div class="screen-actions"><button class="primary" data-action="load-code">ابدأ التحدّي</button><button class="secondary" data-action="new-code">رمز جديد</button></div><div class="section-line"></div><p class="muted">وجهات مستقلة</p><div class="screen-actions"><button class="secondary" data-action="sample" data-value="8">المرصد</button><button class="secondary" data-action="sample" data-value="19">أول تماس</button></div>`);
   if(this.screen==='ready'&&tutorial){
    html=this.modal(`${this.header('أول شعاع','المرحلة الأولى · تعلّم الحركة والضوء')}<ul class="brief-list"><li><b>☀</b><span>الجري تلقائي. حرّك الشمس حتى يصبح جسر الظل متصلًا.</span></li><li><b>↑</b><span>اقفز فوق الفخاخ. الضغط المطوّل يجعل القفزة أعلى.</span></li><li><b>◇</b><span>اجمع الشظايا ثم اعبر بوابة النهاية. الخسارة تعيدك إلى البداية.</span></li></ul><div class="screen-actions"><button class="primary" data-action="launch">ابدأ ↗</button></div>`,true);
   }
@@ -47,7 +50,7 @@ class ShadowShift{
   if(this.screen==='result'){
    const won=this.run.status==='won',r=this.result;
    const explanation=tutorial&&!won?`<p class="muted">${this.run.cause==='void'?'حاذِ الضوء حتى يتصل الجسر قبل عبوره.':'اقفز قبل الفخ، وواصل الضغط لقفزة أعلى.'}</p>`:'';
-   html=this.modal(`<div class="center"><div class="outcome-glyph ${won?'success':''}">${won?'◇':'↺'}</div><h2 class="outcome-title">${won?'اكتملت المرحلة':'انتهت المحاولة'}</h2>${explanation}${won?`<div class="result-stars">${'★'.repeat(r.stars)}${'☆'.repeat(3-r.stars)}</div><div class="result-metrics"><div><b>${r.score}</b><span>النقاط</span></div><div><b>+${r.reward}</b><span>الشظايا</span></div></div>`:''}<div class="screen-actions"><button class="primary" data-action="${won&&this.mode==='campaign'&&this.run.level.id<30?'next':'retry'}">${won&&this.mode==='campaign'&&this.run.level.id<30?'التالي ↗':'إعادة المحاولة ↺'}</button><button class="secondary" data-action="menu">القائمة</button></div></div>`,true);
+   html=this.modal(`<div class="center"><div class="outcome-glyph ${won?'success':''}">${won?'◇':'↺'}</div><h2 class="outcome-title">${won?'اكتملت المرحلة':'انتهت المحاولة'}</h2>${explanation}${won?`<div class="result-stars">${'★'.repeat(r.stars)}${'☆'.repeat(3-r.stars)}</div><div class="result-metrics"><div><b>${r.score}</b><span>النقاط</span></div><div><b>+${r.reward}</b><span>الشظايا</span></div></div>`:''}<div class="screen-actions"><button class="primary" data-action="${won&&this.mode==='campaign'&&this.run.level.id<30?'next':'retry'}">${won&&this.mode==='campaign'&&this.run.level.id<30?'التالي ↗':'إعادة المحاولة ↺'}</button><button class="secondary" data-action="menu">القائمة</button></div>${this.workshop.resultExtra()}</div>`,true);
   }
   if(this.screen==='confirm-import')html=this.modal(`${this.header('استبدال الحفظ؟','سيحل الملف المختار محل تقدمك على هذا المتصفح.','settings')}<p class="save-summary">المراحل المكتملة في الملف: ${Object.keys(this.pendingImport.completed).length}<br>الشظايا: ${this.pendingImport.credits}<br>لن يتم استيراد أي موضع داخل مرحلة.</p><div class="screen-actions"><button class="primary" data-action="confirm-import">استبدال الحفظ</button><button class="secondary" data-action="settings">إلغاء</button></div>`,true);
   $('ui').innerHTML=html;
@@ -62,18 +65,18 @@ class ShadowShift{
  }
  launch(){if(!this.run)return;this.audio.unlock();this.run.start();this.screen='play';this.accumulator=0;this.last=performance.now();this.render();}
  clearHint(){this.lastHint='';$('context-hint').textContent='';$('context-hint').hidden=true;}
- retry(){if(!this.run)return;const id=this.run.level.id;this.release();this.attempt++;this.run=new Run(makeLevel(id,this.attempt,this.save.failures[id]||{},this.seed));$('sun').value='0';this.clearHint();this.renderer.particles.length=0;clearTimeout(this.toastTimer);$('toast').classList.remove('show');this.launch();}
+ retry(){if(!this.run)return;if(['editor-test','player-map'].includes(this.mode)){this.workshop.retry();return;}const id=this.run.level.id;this.release();this.attempt++;this.run=new Run(makeLevel(id,this.attempt,this.save.failures[id]||{},this.seed));$('sun').value='0';this.clearHint();this.renderer.particles.length=0;clearTimeout(this.toastTimer);$('toast').classList.remove('show');this.launch();}
 
- pause(){if(this.screen!=='play')return;this.screen='pause';this.release();this.run.buffer=0;this.audio.suspend();this.accumulator=0;this.render();}
+ pause(){if(this.screen!=='play')return;this.screen='pause';this.release();this.audio.suspend();this.accumulator=0;this.render();}
  resume(){if(!this.run)return;this.screen='play';this.audio.unlock();this.accumulator=0;this.last=performance.now();this.render();}
  release(){this.run?.releaseJump();$('jump').classList.remove('held');}
  jump(){if(this.screen!=='play')return;this.audio.unlock();this.run.pressJump();$('jump').classList.add('held');}
  setSun(value){if(!['play','ready'].includes(this.screen)||!this.run)return;this.run.setSun(value);$('sun').value=String(Math.round(this.run.sun));}
  updateHUD(){
   if(!this.run)return;const r=this.run,l=r.level;
-  $('stage-label').textContent=`${this.mode==='campaign'?'STAGE':this.mode==='daily'?'DAILY':'REMIX'} ${String(l.id).padStart(2,'0')}`;$('stage-name').textContent=l.name;
+  $('stage-label').textContent=`${this.mode==='campaign'?'STAGE':this.mode==='daily'?'DAILY':'REMIX'} ${String(l.id).padStart(2,'0')}`;$('stage-name').textContent=l.name;if(l.custom)$('stage-label').textContent=(this.mode==='editor-test'?'TEST / ':'MAP / ')+l.name;
   const pct=Math.min(100,Math.max(0,(r.x-80)/(l.length-80)*100));$('progress-bar').style.width=pct+'%';$('progress-text').textContent=Math.floor(pct)+'%';
-  $('shard-count').textContent='◆ '.repeat(r.collected.size)+'◇ '.repeat(3-r.collected.size);$('attempt-label').textContent='';
+  $('shard-count').textContent=l.custom?`◆ ${r.collected.size}/${l.shards.length}`:'◆ '.repeat(r.collected.size)+'◇ '.repeat(Math.max(0,3-r.collected.size));$('attempt-label').textContent='';
   if(!tutorialFor(l)){this.clearHint();return;}
   const next=l.obstacles.find(o=>o.x+o.w>r.x-12&&o.x-r.x<560);
   let hint='';
@@ -83,23 +86,26 @@ class ShadowShift{
  }
  processEvents(){const r=this.run;while(r?.events.length){const e=r.events.shift();this.audio.effect(e.type,this.save.settings);
   if(e.type==='jump'||e.type==='land')this.renderer.burst(r.x,this.renderer.floor,SKINS[this.save.skin].color,5);
+  if(e.type==='impact'){this.renderer.burst(e.x,this.renderer.floor-6,e.kind==='meteor'?'#ffd092':'#c9c6b5',24);this.audio.tone(e.kind==='cow'?110:65,.18,'triangle',this.save.settings.sound?.025:.0001);}
   if(e.type==='shard')this.renderer.burst(r.x,this.renderer.floor-r.y-25,'#ffe0a3',16);
   if(e.type==='death'){
    recordDeath(this.save,r,this.mode);this.persist();this.release();this.renderer.burst(r.x,this.renderer.floor-r.y-25,'#ffd4dd',38);this.screen='result';this.result=null;this.render();
   }
-  if(e.type==='win'){this.result=recordWin(this.save,r,this.mode,this.dailyDate);this.persist();this.release();this.screen='result';this.render();}
+  if(e.type==='win'){if(['editor-test','player-map'].includes(this.mode)){this.result={...r.result(),reward:0};this.workshop.won(r);}else this.result=recordWin(this.save,r,this.mode,this.dailyDate);this.persist();this.release();this.screen='result';this.render();}
  }}
  frame(now){const delta=this.last?Math.min(100,now-this.last):16;this.last=now;
   if(this.screen==='play'&&this.run){this.accumulator+=delta/1000;let steps=0;while(this.accumulator>=STEP&&steps++<12&&this.screen==='play'){this.run.update(STEP);this.accumulator-=STEP;this.processEvents();}
    this.uiClock+=delta;if(this.uiClock>70){this.updateHUD();this.uiClock=0;}
   }else this.accumulator=0;
-  this.renderer.paint(this.run,this.screen,now/1000,this.save,delta);
+  this.renderer.paint(this.run,this.screen,now/1000,this.save,delta);this.workshop.paintOverlay();
   if(!document.hidden&&['menu','play'].includes(this.screen))this.audio.music(now/1000,this.save.settings.music);
   requestAnimationFrame(t=>this.frame(t));
  }
  async action(action,value){
   this.audio.unlock();
   switch(action){
+   case 'workshop':this.workshop.openEditor();break;
+   case 'playerMaps':await this.workshop.gallery();break;
    case 'menu':this.pendingStart=null;this.showMenu();break;
    case 'continue':this.prepare(this.save.unlocked);break;
    case 'level':this.prepare(+value);break;
@@ -110,7 +116,7 @@ class ShadowShift{
    case 'character':this.save.character=value;this.persist();this.render();break;
    case 'skin':this.selectedSkin=+value;if(this.save.owned.includes(+value)){this.save.skin=+value;this.persist();}this.render();break;
    case 'buy-skin':{const k=SKINS[this.selectedSkin];if(k&&!this.save.owned.includes(k.id)&&this.save.credits>=k.price){this.save.credits-=k.price;this.save.owned.push(k.id);this.save.skin=k.id;this.persist();this.render();}break;}
-   case 'character-done':if(this.pendingStart){const {id,mode,seed}=this.pendingStart;this.prepare(id,mode,seed);}else this.showMenu();break;
+   case 'character-done':if(this.workshop.pendingPlay){const p=this.workshop.pendingPlay;this.workshop.pendingPlay=null;this.workshop.playMap(p.map,p.remote,p.testing);break;}if(this.pendingStart){const {id,mode,seed}=this.pendingStart;this.prepare(id,mode,seed);}else this.showMenu();break;
    case 'settings':if(this.screen==='play')this.pause();if(this.screen==='pause')this.settingsReturn='pause';else if(this.screen!=='confirm-import')this.settingsReturn='menu';this.screen='settings';this.render();break;
    case 'close-settings':if(this.settingsReturn==='pause'&&this.run){this.screen='pause';this.render();}else this.showMenu();break;
    case 'launch':this.launch();break;
@@ -120,7 +126,7 @@ class ShadowShift{
    case 'challenge':this.screen='challenge';this.render();break;
    case 'sample':this.prepare(+value,'challenge',hash('showcase-'+value));break;
    case 'new-code':$('challenge-code').value=challengeCode(1+Math.floor(Math.random()*30),crypto.getRandomValues(new Uint32Array(1))[0]);break;
-   case 'load-code':{const c=parseCode($('challenge-code').value);if(c)this.prepare(c.id,'challenge',c.seed);else $('challenge-error').textContent='رمز غير صحيح. مثال: SS1-19-5A17C0DE';break;}
+   case 'load-code':{const c=parseCode($('challenge-code').value);if(c)this.prepare(c.id,'challenge',c.seed);else $('challenge-error').textContent='رمز غير صحيح. مثال: SS2-19-5A17C0DE';break;}
    case 'share-code':{const code=this.run?.level.signatureCode;if(!code)break;try{await navigator.clipboard.writeText(code);this.toast('تم نسخ الرمز: '+code);}catch{this.toast(code);}break;}
    case 'fullscreen':try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{this.toast('ملء الشاشة غير متاح هنا؛ جرّب الوضع الأفقي.');}break;
    case 'export':{const blob=new Blob([this.store.export()],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Shadow-Shift-save-'+utcDay()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);break;}
@@ -135,6 +141,7 @@ class ShadowShift{
   $('jump').addEventListener('pointerdown',e=>{e.preventDefault();$('jump').setPointerCapture(e.pointerId);this.jump();});
   for(const event of ['pointerup','pointercancel','lostpointercapture'])$('jump').addEventListener(event,()=>this.release());
   window.addEventListener('keydown',e=>{
+   if(['editor','playerMaps','workLogin','workPublish','workDelete'].includes(this.screen))return;
    if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)&&document.activeElement?.type!=='range')return;
    if(['Space','ArrowUp','ArrowLeft','ArrowRight','Escape','KeyP','Digit1','Digit2','Digit3','KeyA','KeyD'].includes(e.code))e.preventDefault();
    if(e.repeat)return;

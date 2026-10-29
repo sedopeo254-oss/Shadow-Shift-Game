@@ -3,3 +3,8 @@ node_modules/
 playtest-output/
 *.log
 .DS_Store
+
+data/
+*.sqlite*
+.env
+playtest-output-*/

@@ -1,66 +1,65 @@
-# Shadow Shift
+# Shadow Shift — 0.5.0
 
-A quiet mobile puzzle-runner through light and shadow.
+A mobile-first light-and-shadow runner with silent retries, surprising falling hazards, and a player-level workshop.
 
-**Playable alpha 0.4.0 — not a finished Android store release.**
+**Playable web alpha. Not an APK, not a publicly deployed community service.**
 
-## العب الآن
-
-- شغّل `npm start` ثم افتح `http://localhost:4173`.
-- أو شغّل `npm run build` وافتح `dist/Shadow-Shift-Portable.html` كملف مستقل، دون تحميل مكتبات خارجية. السماح بالملفات المحلية يختلف بين متصفحات الهواتف.
-- للموقع الثابت: ارفع محتويات `dist/` أو استخدم جذر المستودع. كل المسارات نسبية وتناسب مجلد GitHub Pages.
-- لإتاحة نسخة ويب من المستودع: Settings → Pages → Deploy from a branch → `main` → `/ (root)`. هذا إعداد على GitHub، وليس خطوة ينفذها هذا الكود تلقائيًا.
-
-## تحديث 0.4.0
-
-المرحلة الأولى وحدها للتعليم. من المرحلة الثانية يبدأ اللعب مباشرة دون تلميحات أو شرح للفخاخ، ولا تُعلن اللعبة ما تغير عند الإعادة. الواجهة أبسط، ولكل مرحلة مشهد مختلف. لا توجد نقاط حفظ.
-
-مشاهد الخلفية الثلاثون مرسومة بالكود: ألوان ومعالم وأجواء مختلفة، وليست ثلاثين صورة مرسومة يدويًا. تظل أشكال هندسية مشتركة بين المشاهد، لكن الخلفية لم تعد شريطًا يلتف ويتكرر أثناء الجري.
-
-تفاصيل الإصدار: `docs/CHANGELOG_0.4.0.md`. نتائج الاختبارات وحدودها: `docs/QA.md`.
-
-## What's implemented
-
-- Auto-running, variable-height jump, jump buffer, and coyote time at a fixed 120 Hz simulation step.
-- Boy/girl Echo characters with identical physics and original procedural vector art.
-- Three sunlight positions, solid shadow bridges, readable fake-bridge cues, spikes, laser fields, saws, light-locked gates, low-gravity zones, and UFO abduction/shields.
-- 30 configured routes across five palettes/worlds, approximately 48–190 seconds. Routes are built from modular cells; **they are not all 30 bespoke narrative levels from the design document**.
-- A different trap family and shadow alignment after every failure. Campaign retries also use early/late jump history; this is deterministic rule-based adaptation, not machine learning or mind-reading.
-- No checkpoints, no paid revival, no mid-level resume, no energy system.
-- Three optional shards per run, permanent completion rewards, five cosmetic colorways, and local records.
-- A UTC daily challenge, bounded daily reward history, and shareable `SS1` challenge-family codes. Retries within a shared family change deterministically. Scores are local, not an online leaderboard.
-- Versioned allowlisted save data, validated import/export, a last-good backup, and graceful storage failure.
-- Keyboard and multi-touch controls, landscape/portrait layouts, left-handed layout, reduced effects, procedural audio, and capped/adaptive rendering resolution.
-- Offline service-worker code and a dependency-free portable build. HTTPS installation still needs a real-origin/device check; see `docs/QA.md`.
-
-## Controls
-
-| Action | Touch | Keyboard |
-|---|---|---|
-| Sun | Drag the gold slider to left / center / right | 1 / 2 / 3, or A / D |
-| Jump | Hold the jump button for a higher jump | Hold Space or Up |
-| Pause | Pause button | P or Escape |
-| Retry after failure | Retry button | R |
-
-Instruction labels appear only in stage 1. Later stages contain no solution overlays: the player observes the physical response to sunlight instead. Death discards collected run shards and returns to the very beginning.
-
-## Development
-
-Requires Node.js 20+; **no npm dependencies or install step**.
+## التشغيل
 
 ```sh
-npm test
-npm run check
 npm run build
 npm start
 ```
 
-`src/core.js` owns rules, `src/content.js` owns level data/generation, `src/render.js` owns drawing, and `src/app.js` owns browser UI/input; `src/scenery.js` owns stage-specific background art and tutorial visibility policy. The renderer does not decide collisions or save player position.
+Open `http://localhost:4173`. Or open the generated `dist/Shadow-Shift-Portable.html` directly in a browser that supports local files. The standalone file includes the game, editor, local maps, import/export and example maps, without external libraries.
 
-See `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/QA.md`, and `docs/RELEASE_CHECKLIST.md`.
+For the actual shared Player Maps service instead of the static server:
 
-## Honest boundaries
+```sh
+npm run build
+npm run community
+```
 
-This is a working foundation, not a promise of permanent popularity or revenue. It does not contain an APK, ad SDK, purchases, cloud accounts, authoritative leaderboard, full cinematic story, interactive replay-ghost puzzles, reversed-gravity ceiling stages, or a finished final boss. Replay ghosts were removed in 0.4.0 to avoid later-stage assistance. No device FPS, battery, retention, or income claim is made without measurement.
+Then open the same localhost address. The service stores accounts, maps and votes in `data/community.sqlite`. `npm start` and `npm run community` are alternative servers, not commands to run on the same port simultaneously. See `docs/COMMUNITY_DEPLOY.md` before public hosting. Committing to GitHub does not deploy the backend; GitHub Pages alone cannot run this Node service.
 
-All game illustrations and sound synthesis in this repository are original procedural code. No downloaded character artwork, font binaries, tracking SDKs, or paid services are required. Repository publication does not by itself grant an open-source license; the owner can choose licensing separately. The previously supplied full design DOCX/PDF are included with the downloadable project package, not duplicated as binary repository assets.
+## What changed
+
+- Faster auto-run with a short acceleration ramp, controllable jump height and a brisker falling phase. Existing fixed-step simulation, jump buffering and full-stage resets remain.
+- Falling cows, meteors and cargo crates: actual simulated falling bodies, landing collisions, material-specific art and impact effects. They appear after the tutorial and can also be placed in custom maps.
+- Ground art uses world-positioned rock facets, moss/root accents, glass veins or metal paneling, depending on the stage environment.
+- **وضع المطور / Workshop:** place, select, drag, erase, undo/redo, choose a background, route length and speed, set light alignments, test, save, import and export `.ssmap` files.
+- **Player Maps:** local library and clearly separated online community. Included examples are labelled as team-created examples, not fake player uploads.
+- Shared publication requires a completed author replay. The server simulates the recorded input from the beginning before accepting a map. Changing a certified map requires a new test.
+- Like, dislike and undo-vote: one current vote per account per map, no self-voting, persistent totals, quality-ranked/most-liked/newest discovery and report/moderator controls.
+
+## Design rules preserved
+
+Only campaign stage 1 displays teaching and solution hints. Stages 2–30 and all custom maps launch without them. Retry changes are not announced. No checkpoints, paid revival or mid-stage resume. Boy and girl have identical physics. Custom maps do not unlock campaign levels or grant permanent currency. Authored maps stay fixed across retries so their layout and verification remain meaningful; campaign routes still mutate silently.
+
+## Using the editor
+
+Open **وضع المطور**. Choose a tool and tap the playfield to place it. Use **تحديد** to select/drag a hazard or **تحريك** and the bottom timeline to navigate. Set the title, background, route length and speed above. Selected light-sensitive objects expose their direction setting; bridges also expose width. The editor deliberately constrains objects to safe spawn/exit margins, bounded counts and non-overlapping challenge intervals.
+
+Use **اختبار** to play the whole map. Completing it enables publication. **حفظ** adds it to the local library; **تصدير** creates a shareable file. The current editor makes horizontal runner routes with shadow gaps and the supported obstacle vocabulary; it is not a free-form 3D terrain sculptor.
+
+## Development and testing
+
+Node.js 22.13+ is required for the optional built-in SQLite service; Node 22.16.0 was used for this build. No npm packages are needed at runtime.
+
+```sh
+npm run check
+npm run build
+python tools/playtest_05.py
+```
+
+The optional browser suite needs Python Playwright and Chromium. It starts its own temporary local community service. See `docs/QA.md` for the precise test method and limitations.
+
+## Architecture
+
+`core.js` owns physics; `content.js` owns campaign generation; `scenery.js` owns scene profiles; `visuals.js` owns new terrain/falling-body art; `maps.js` owns the canonical map schema and deterministic replay validator; `workshop.js` owns editor/community UI; `server/` owns authenticated shared persistence. Rendering never grants completion or decides votes.
+
+## Compatibility and boundaries
+
+Completed campaign saves from 0.3/0.4 remain compatible. Export progress before changing browser origin. Challenge codes are now **SS2** because movement and generated hazards changed. SS1 codes are rejected rather than silently producing a different challenge; use the earlier build for those codes. The map format specifies engine `0.5` and rejects other engines.
+
+The 30 campaign routes are modular, not all the handcrafted narrative encounters from the design document. Backgrounds and characters are original code-rendered art. No public hosting, account recovery, email verification, proven one-human-one-account enforcement, native Android packaging, ads, purchases, real-device FPS/battery data or revenue guarantee is included. The account protections and moderation tools are an initial service foundation, not a full production security audit.

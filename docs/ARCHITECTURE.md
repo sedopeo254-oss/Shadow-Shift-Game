@@ -37,3 +37,9 @@ Schema 1 is validated before writes and imports. Future schema versions are reje
 ## Offline and hosting
 
 Root and subpath hosting use relative URLs. Service workers require an appropriate secure origin; the portable file does not require a worker. Verify installed behavior, cache updates, and storage on real devices before claiming Android/PWA readiness. Reference: https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
+
+## 0.5 additions
+
+`maps.js` owns the schema and replay validator shared with the server. `workshop.js` owns authoring and community UI. `visuals.js` owns grounded material detail and falling-body drawing. `server/index.mjs` owns optional shared accounts/publications/votes. The client is never authoritative about online votes or map completion. Public maps are immutable records; edits require a new replay and publication. Custom map generation is fixed across retries. See COMMUNITY_DEPLOY.md for security/operational gates.
+
+Campaign content/codes are SS2 in 0.5 because physics changed. Save schema remains 1.

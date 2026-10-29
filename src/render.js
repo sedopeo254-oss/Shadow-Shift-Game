@@ -1,5 +1,6 @@
 import {SKINS,DIRECTIONS} from './content.js';
 import {Scenery,tutorialFor} from './scenery.js';
+import {drawTerrain,drawFalling} from './visuals.js';
 const TAU=Math.PI*2;
 const round=(c,x,y,w,h,r)=>{c.beginPath();c.roundRect(x,y,w,h,r);};
 function poly(c,points,fill,stroke){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.stroke();}}
@@ -42,14 +43,7 @@ export class Renderer{
  background(c,time,id,camera,menu,length=12000){
   this.scenery.draw(c,{id,w:this.w,h:this.h,f:this.floor,camera,length,time,reduced:this.settings.reduced,low:this.settings.quality==='low',menu});
  }
- platform(c,left,right,f,accent){
- if(right<=left)return;const w=right-left;
- const g=c.createLinearGradient(0,f,0,f+170);g.addColorStop(0,'#243a4a');g.addColorStop(.12,'#132638');g.addColorStop(1,'#070e1b');
- c.fillStyle=g;c.fillRect(left,f,w,this.h-f);c.fillStyle='#456171';c.fillRect(left,f,w,3);c.fillStyle=accent+'77';c.fillRect(left,f+3,w,1);
- c.fillStyle='#0a1826';for(let x=Math.floor(left/82)*82;x<right;x+=82){if(x>=left){c.fillRect(x,f+17,1,36);poly(c,[[x+5,f+11],[Math.min(x+72,right),f+11],[Math.min(x+60,right),f+30],[x+5,f+30]],'#192d3c');}}
- c.strokeStyle='#2a4252';c.lineWidth=1;c.beginPath();c.moveTo(left,f+44);c.lineTo(right,f+44);c.stroke();
- c.fillStyle=accent+'99';for(let x=left+24;x<right-10;x+=160)c.fillRect(x,f+47,18,2);
- }
+ platform(c,left,right,f,accent){drawTerrain(c,left,right,f,this.h,this.stage||1,this.cam||0);}
  bridge(c,o,x,f,active,t,accent){
  c.strokeStyle=active?accent:'#74798c';c.lineWidth=active?3:1;c.setLineDash(active?[]:[7,7]);c.beginPath();c.moveTo(x,f);c.lineTo(x+o.w,f);c.stroke();c.setLineDash([]);
  if(active){const g=c.createLinearGradient(0,f,0,f+42);g.addColorStop(0,accent+'37');g.addColorStop(1,accent+'00');c.fillStyle=g;c.fillRect(x,f,o.w,42);c.strokeStyle=accent+'30';c.lineWidth=1;
@@ -62,6 +56,7 @@ export class Renderer{
  obstacle(c,o,run,cam,t,accent){
  const x=o.x-cam,f=this.floor,active=run.aligned(o),danger='#ff8d9c',distance=o.x-run.x;
  if(x+o.w<-70||x>this.w+70)return;
+ if(['cow','meteor','crate'].includes(o.kind)){drawFalling(c,o,run,cam,f,this.settings.reduced);return;}
  if(o.kind==='bridge'){
   this.bridge(c,o,x,f,active,t,accent);
   this.marker(c,x+o.w/2,f-66,`${['◀','◆','▶'][o.required+1]} ${DIRECTIONS[o.required+1]}`,active?accent:'#f4ce85');return;
@@ -108,9 +103,9 @@ export class Renderer{
  this.mean=this.mean*.97+delta*.03;this.frames++;
  if(this.settings.quality==='auto'&&this.frames===300&&this.mean>23&&this.cap>1.25){this.cap=1.25;this.resize();}
  const c=this.c;c.setTransform(this.ratio,0,0,this.ratio,0,0);
- const playing=['play','pause','result','ready','settings','confirm-import'].includes(screen)&&run;this.tutorial=tutorialFor(playing?run.level:null);
- const stage=playing?run.level.id:1,accent=SKINS[save.skin]?.color||'#83f8da';
- const cam=playing?Math.max(0,run.x-this.w*.24):0,t=this.settings.reduced?0:time;
+ const playing=['play','pause','result','ready','settings','confirm-import','editor'].includes(screen)&&run;this.tutorial=tutorialFor(playing?run.level:null);
+ const stage=playing?(run.level.sceneId||run.level.id):1,accent=SKINS[save.skin]?.color||'#83f8da';
+ const cam=screen==='editor'?(this.editorCamera||0):playing?Math.max(0,run.x-this.w*.24):0,t=this.settings.reduced?0:playing?run.t:time;this.cam=cam;this.stage=stage;
  this.background(c,t,stage,cam,!playing,run?.level.length);
  if(!playing){
   const px=this.w<this.h?this.w*.56:this.w*.76,py=this.floor;
@@ -133,7 +128,7 @@ export class Renderer{
  const endX=run.level.length-cam;if(endX<w+90){glow(c,endX,f-75,110,accent+'33');c.strokeStyle=accent;c.lineWidth=4;c.beginPath();c.ellipse(endX,f-70,32,70,0,0,TAU);c.stroke();c.strokeStyle='#f5e0b2';c.lineWidth=1;c.beginPath();c.ellipse(endX,f-70,40,78,0,0,TAU);c.stroke();this.marker(c,endX,f-170,'الخروج',accent);}
  const heroX=run.x-cam,heroY=f-run.y;
  c.fillStyle='#00000044';c.beginPath();c.ellipse(heroX,f+3,17+run.y*.015,4,0,0,TAU);c.fill();
- if(run.status!=='dead')drawHero(c,heroX,heroY,1,t,save.character||'boy',accent,run.status==='running',!run.grounded);
+ if(run.status!=='dead')drawHero(c,heroX,heroY,1,run.motionTime||t,save.character||'boy',accent,run.status==='running',!run.grounded);
  for(let i=this.particles.length-1;i>=0;i--){const p=this.particles[i],dt=Math.min(delta/1000,.03);p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=180*dt;if(p.life<=0){this.particles.splice(i,1);continue;}c.globalAlpha=p.life/p.max;c.fillStyle=p.color;c.fillRect(p.x-cam,p.y,3,3);}c.globalAlpha=1;
  if(run.status==='dead'){c.fillStyle='#13091a33';c.fillRect(0,0,w,this.h);}
  }

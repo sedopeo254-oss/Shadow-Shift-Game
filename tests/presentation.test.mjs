@@ -37,5 +37,5 @@ test('Legacy 0.3 completion saves remain valid and position-free',()=>{
 });
 test('Service worker and portable bundler include the new scenery module',async()=>{
  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8'),build=await readFile(new URL('../tools/build.mjs',import.meta.url),'utf8');
- assert.ok(sw.includes('./src/scenery.js'));assert.ok(build.includes("'scenery'"));assert.ok(sw.includes('0.4.0'));
+ assert.ok(sw.includes('./src/scenery.js'));assert.ok(build.includes("'scenery'"));assert.ok(sw.includes('0.5.0'));
 });

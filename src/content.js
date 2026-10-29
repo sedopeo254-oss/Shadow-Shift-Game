@@ -1,6 +1,6 @@
 /** Content is data, not renderer code. Distances use world units; times use seconds. */
-export const VERSION = '0.4.0';
-export const CONTENT_VERSION = 1;
+export const VERSION = '0.5.0';
+export const CONTENT_VERSION = 2;
 export const WORLD_NAMES = ['الظل الأول','الفخاخ الحية','أطلال النيون','التشوّه الكوني','كابوس الصدى'];
 export const WORLD_EN = ['THE FIRST SHADE','LIVING TRAPS','NEON RUINS','COSMIC DISTORTION','ECHO NIGHTMARE'];
 export const PALETTES = [
@@ -12,7 +12,7 @@ export const PALETTES = [
 ];
 const names = ['أول شعاع','قفزة لا تراها','المدينة التي تومض','الباب الذي يتراجع','الأشواك الصامتة','اختبار الضوء','ذاكرة الأرض','المعبر الذي يراك','حلبة المناشير','الظل المقلّد','الطابق المقلوب','القلب المتبدّل','مترو بلا قطار','مصعد إلى الأسفل','غرفة تحفظ القفز','شارع الإشارات الكاذبة','الأبراج الزجاجية','مطاردة الحارس','أول تماس','الشعاع الراجع','حديقة الجاذبية','القمر المزيّف','المطر المعكوس','عملية الاختطاف','أصداء الأمس','المرحلة التي تكذب','بوابة الاحتمالات','الانهيار المتسلسل','ألف فخ وفخ','آخر تحوّل'];
 const durations = [48,54,60,66,72,80,85,90,95,100,105,112,115,118,122,126,132,138,135,140,145,150,156,162,156,162,168,174,182,190];
-export const LEVELS = names.map((name,i)=>({id:i+1,name,world:Math.floor(i/6),duration:durations[i],speed:184+Math.floor(i/6)*10,signature:i%6}));
+export const LEVELS = names.map((name,i)=>({id:i+1,name,world:Math.floor(i/6),duration:durations[i],speed:i===0?212:240+Math.floor(i/6)*12,signature:i%6}));
 export const SKINS = [
  {id:0,name:'الصدى الأصلي',color:'#83f8da',price:0},
  {id:1,name:'شروق ذهبي',color:'#ffd68a',price:140},
@@ -20,14 +20,14 @@ export const SKINS = [
  {id:3,name:'الجليد الكوني',color:'#9de3ff',price:350},
  {id:4,name:'آخر شرارة',color:'#ff9f9a',price:500}
 ];
-export const LABELS = {spike:'أشواك',laser:'حقل ليزر',saw:'منشار',gate:'بوابة ضوئية',ufo:'شعاع الاختطاف',bridge:'جسر ظل',gravity:'مجال جاذبية',void:'الهاوية'};
+export const LABELS = {spike:'أشواك',laser:'حقل ليزر',saw:'منشار',gate:'بوابة ضوئية',ufo:'شعاع الاختطاف',bridge:'جسر ظل',gravity:'مجال جاذبية',void:'الهاوية',cow:'بقرة ساقطة',meteor:'نيزك',crate:'حمولة ساقطة'};
 export const DIRECTIONS = ['يسار','وسط','يمين'];
 export function hash(text){let h=2166136261;for(const c of String(text)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 export function random(seed){let t=seed>>>0;return ()=>{t+=0x6D2B79F5;let r=Math.imul(t^t>>>15,t|1);r^=r+Math.imul(r^r>>>7,r|61);return ((r^r>>>14)>>>0)/4294967296;};}
 export function utcDay(date=new Date()){return date.toISOString().slice(0,10);}
-export function dailyLevel(date=utcDay()){return {id:7+hash(date)%24,seed:hash('SS1:'+date),date};}
-export function challengeCode(id,seed){return `SS1-${String(id).padStart(2,'0')}-${(seed>>>0).toString(16).padStart(8,'0').toUpperCase()}`;}
-export function parseCode(code){const m=/^SS1-(\d{2})-([0-9A-F]{8})$/i.exec(String(code).trim());if(!m||+m[1]<1||+m[1]>30)return null;return {id:+m[1],seed:parseInt(m[2],16)>>>0};}
+export function dailyLevel(date=utcDay()){return {id:7+hash(date)%24,seed:hash('SS2:'+date),date};}
+export function challengeCode(id,seed){return `SS2-${String(id).padStart(2,'0')}-${(seed>>>0).toString(16).padStart(8,'0').toUpperCase()}`;}
+export function parseCode(code){const m=/^SS2-(\d{2})-([0-9A-F]{8})$/i.exec(String(code).trim());if(!m||+m[1]<1||+m[1]>30)return null;return {id:+m[1],seed:parseInt(m[2],16)>>>0};}
 
 /** Disjoint challenge cells make collision envelopes independently testable. */
 export function makeLevel(id,attempt=0,profile={},seedOverride=null){
@@ -47,6 +47,7 @@ export function makeLevel(id,attempt=0,profile={},seedOverride=null){
   let kind;
   if(i===0)kind='bridge';
   else if(i===1)kind=first;
+  else if(id>1&&i>2&&i%5===2)kind=['cow','meteor','crate'][(i+variant+id)%3];
   else if(world>=3&&i%7===5)kind='ufo';
   else if(world>=1&&i%8===6)kind='gate';
   else if(world>=2&&i%9===7)kind='gravity';
@@ -56,7 +57,8 @@ export function makeLevel(id,attempt=0,profile={},seedOverride=null){
   let bias=0;
   if(seedOverride===null && attempt>0 && i>2){bias=profile.early>profile.late?36:profile.late>profile.early?-30:0;}
   const base={id:i,x:x+bias,kind,required,phase:rng()*Math.PI*2};
-  if(kind==='bridge')Object.assign(base,{w:235+world*14+Math.round(rng()*45),fake:world>0&&i%2===0});
+  if(['cow','meteor','crate'].includes(kind))Object.assign(base,{w:kind==='cow'?86:62,h:kind==='cow'?58:40});
+  else if(kind==='bridge')Object.assign(base,{w:235+world*14+Math.round(rng()*45),fake:world>0&&i%2===0});
   else if(kind==='ufo')Object.assign(base,{w:120});
   else if(kind==='gate')Object.assign(base,{w:34});
   else if(kind==='gravity')Object.assign(base,{w:350});

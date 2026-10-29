@@ -1,37 +1,35 @@
-# Alpha 0.4.0 verification — 2026-10-29
+# Alpha 0.5.0 verification — 2026-10-29
 
-## Executed results
+## Executed
 
-- `npm run check`: 60 tests passed, zero failed (Node.js 22.16.0).
-- `npm run build`: succeeded; runtime fingerprint `d505926c2780`.
-- `python tools/playtest.py`: 40 browser assertions passed, zero page errors, Chromium 144.0.7559.96.
+- `npm run check`: **88 tests passed; 0 failed**, Node 22.16.0.
+- `npm run build`: successful; fingerprint recorded in `BUILD_INFO.json` in the downloadable package.
+- `python tools/playtest_05.py`: **37 browser assertions passed; 0 page errors**, Chromium 144.0.7559.96.
 
-The existing 53 rules tests still include 120 reference-controller campaign runs (30 stages × four attempts) and 36 selected shared-seed runs. They cover only sampled routes, not every possible seed or human difficulty. Seven new tests cover tutorial-only policy, unique scene descriptions, stable stage identity across retries, non-wrapping world cells, absence of mutation copy, old-save compatibility, and build/cache inclusion.
+The core suite retains 120 campaign reference-controller runs (30 stages × four attempts) and 36 selected shared-seed runs. The controller was updated to react to the new falling hazards. These are sampled automated paths, not proof of all seeds or a human difficulty assessment. New cases cover acceleration, short/held jumps, falling-state reset, all falling hazard types, map limits, executable-field rejection, custom-map tutorial exclusion, multi-shard results, proof binding, malformed replays, example-map clearances, ranking monotonicity and storage denial.
 
-The browser suite exercises the level-1 tutorial, actual first-level completion with the reference controller, immediate level-2 entry, hint removal, absence of canvas labels, silent death/retry, actual trap mutation, UFO reset, return to the tutorial, all 30 rendered scene fingerprints, bounded scenery cache, portrait/landscape resizing, simultaneous two-contact touch input, settings, and storage-denial fallback. Screenshot sizes include 1440×900, 430×932, 932×430 and 360×640. Distinct image fingerprints demonstrate different renderings, not a subjective quality score.
+The real shared-service integration test uses a temporary SQLite database and separate authenticated accounts. It tests publication proof verification, fake-win rejection, cross-account map discovery, no self-vote, idempotent likes, switching/removing votes, ranked discovery, CSRF Origin rejection, reports, private-path denial, persistence after a server restart, moderator hiding and session invalidation on logout.
 
-## Test environment limits
+The browser suite tests actual editor pointer placement, dragging, undo/redo, local saves, character selection and custom-map continuation, author-test completion, proof creation, export, publication/login UI, cross-account vote updates, falling-body screenshots, portrait/landscape layout, two simultaneous touch contacts, pause, tutorial isolation, full retries and offline community disclosure.
 
-Browser URL navigation is blocked by environment policy. The harness loads the exact generated portable HTML through Playwright `set_content`, injecting an inspection handle and a memory-backed storage adapter for UI flow tests only. A separate page verifies the original storage-denied path. Gallery captures use controlled positions and frozen simulation with physically supported bridge placement. None of these test-only adapters is in the distributed game.
+## Test harness and limits
 
-HTTPS hosting, service-worker installation and upgrades, actual-origin persistence, physical Android multi-touch, thermal behavior, battery consumption and sustained frame rates were NOT verified. No APK was built. Do not turn browser emulation into device-performance claims.
+Browser URL navigation is blocked by this environment's policy (`ERR_BLOCKED_BY_ADMINISTRATOR`). Tests load the exact generated portable HTML using Playwright `set_content`. An inspection handle and in-memory storage adapter exist only in the test page. For community UI tests, a test-only bridge forwards the UI's API calls to an actual temporary HTTP server. The bridge does not verify browser cookie enforcement, CORS or production networking. Separate Node HTTP tests verify session headers and server-side validation.
+
+Screenshots of the cow/meteor use controlled simulation positions to show the effect clearly. Editor interactions and publication flows are exercised by UI clicks. The account names and votes in `02-player-maps-server-test.png` are test data, not public players or engagement. The temporary service is destroyed after the test; no user database is shipped.
+
+No public deployment, physical Android device test, APK build, long-session frame-time/thermal/battery study, production TLS/cookie test, service-worker upgrade/reload test, real-origin browser persistence test, Docker build or security audit was performed. Do not relabel browser emulation as phone performance evidence.
 
 ## Reproduce
 
 ```sh
 npm run check
 npm run build
-python tools/playtest.py
+python tools/playtest_05.py
 ```
 
-Optional developer dependency: Python Playwright and a Chromium executable (or `CHROMIUM_EXECUTABLE`). The game itself still has no external runtime packages. Reports/screenshots go in ignored `playtest-output/`.
+Python Playwright and Chromium are optional development tools, not game runtime dependencies. The browser harness starts and cleans up its own local service. Reports and captures are in `playtest-output-0.5/` in the downloadable package.
 
-## Presentation acceptance criteria
+## Known scope
 
-Only level 1 may display a briefing, context hints, control descriptions, route labels, failure advice, or projection lines. Stages 2–30 launch directly. Later failure screens contain only neutral outcome text and actions; retries never announce new obstacles or play a mutation notification sound. Cosmetic motion, physical hazard appearance and control focus/accessibility are not solutions.
-
-There are 30 code-rendered scene compositions with distinct palettes, primary landmarks, atmosphere and seeded geometry. They are not 30 hand-painted raster artworks. Absolute-position landscape tiles use a twelve-entry LRU cache; geometry does not reset using a camera modulo period. Shared shape vocabulary and repeatable environmental particles remain intentional. Scenery is independent of attempt seeds, so a retry retains the identity of its stage.
-
-## Unchanged scope
-
-The 30 gameplay routes remain modular. They do not yet implement all handcrafted story scenarios from the original GDD. Adaptation is local rules, not trained AI. No checkpoints, revival purchase, analytics, cloud save or online leaderboard. Save schema and challenge-family algorithm remain version 1 for compatibility.
+Campaign routes remain modular. Authoring is a horizontal-runner editor with a bounded vocabulary, not unrestricted terrain sculpting. Online community works only on the optional server's origin; the portable file remains local/offline. Identity and moderation are an initial foundation, not complete public-service operations. Completed campaign saves are compatible, but old SS1 challenge codes intentionally require the old engine. No checkpoints or paid revival were added.
